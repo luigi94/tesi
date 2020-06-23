@@ -1,0 +1,52 @@
+sudo mkdir dependency
+cd dependency
+sudo apt-get update
+sudo apt-get dist-upgrade
+sudo apt-get install libssl-dev libboost-all-dev m4 libreadline-dev lzip flex bison libglib2.0-dev default-jre
+
+sudo wget https://gmplib.org/download/gmp/gmp-6.2.0.tar.lz
+sudo lzip -vd gmp-6.2.0.tar.lz
+sudo tar -xvf gmp-6.2.0.tar
+cd gmp-6.2.0
+sudo ./configure
+sudo make
+sudo make install
+sudo make check
+cd ..
+sudo rm -rf gmp-6.2.0.tar 
+
+sudo wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
+sudo tar -xvf pbc-0.5.14.tar.gz
+cd pbc-0.5.14
+sudo ./configure
+sudo make
+sudo make install // QUI VIENE FUORI UN WARNING
+sudo make check
+cd ..
+sudo rm -rf pbc-0.5.14.tar.gz 
+
+sudo wget http://acsc.cs.utexas.edu/cpabe/libbswabe-0.9.tar.gz
+sudo tar -xvf libbswabe-0.9.tar.gz
+cd libbswabe-0.9
+sudo ./configure
+sudo make
+sudo make install
+cd ..
+sudo rm -rf libbswabe-0.9.tar.gz
+
+sudo wget http://acsc.cs.utexas.edu/cpabe/cpabe-0.11.tar.gz
+sudo tar -xvf cpabe-0.11.tar.gz
+cd cpabe-0.11
+sudo ./configure
+// AGGIORNARE IL Makefile e policy_lang.y SEGUENDO QUESTA GUIDA: https://jingwei87.github.io/software/reed/
+// METTERE I FILE AGGIORNATI NEI DOCUMENTI (O IN UN ALTRA CARTELLA, CAMBIANDO IL CODICE SEGUENTE ADEGUATAMENTE)
+// LA CARTELLA /home DI UBUNTU SI TROVA AL PERCORSO (WINDOWS) C:\Users\Luigi\AppData\Local\Packages\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\LocalState\rootfs\home
+sudo cp /mnt/c/Users/Luigi/Documents/Makefile Makefile
+sudo cp /mnt/c/Users/Luigi/Documents/policy_lang.y policy_lang.y
+sudo make
+sudo make install
+cd ..
+sudo rm -rf cpabe-0.11.tar.gz
+
+sudo apt-get autoclean
+sudo apt-get autoremove

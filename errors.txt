@@ -1,0 +1,123 @@
+                    :ebbbbbbe.    :ebbbbbbe:
+                 bbbbbbbbbbbb: bbbbbbeebbbbbb
+                 bbbb.         bbbb.      .bbbb
+                bbbb          :bbb          bbbe
+                bbbb          ebbb          bbbe
+                :bbb:         :bbb         ebbb.
+                 ebbbbe:....  :bbb  ....:ebbbb.
+                  .bbbbbbbbbb :bbb :bbbbbbbbb
+                 ebbbbe:....  :bbb  ....:ebbbbe
+                ebbb.         :bbb         .bbbe
+                bbbe          ebbb          ebbb
+                bbbe          :bbb          ebbb
+                :bbbe       .:.   :.       ebbb.
+                 :bbbbbeeebbbbb  bbbbbeebbbbbb.
+                   .:ebbbbbbe:    .ebbbbbbe:
+_________________________________________________________________________
+
+                         Checking VM State
+_________________________________________________________________________
+
+2020-05-15 14:51:19,928 [INFO  ]  [__main__] ====> Starting EB Starterkit Manager!!
+2020-05-15 14:51:19,930 [INFO  ]  [__main__] ====> Application is running with the argument 'checkVMState'
+Traceback (most recent call last):
+  File "scripts/python/main.py", line 128, in <module>
+    main()
+  File "scripts/python/main.py", line 118, in main
+    Status = command.requestExecution(argument.command)
+  File "python\ebstarterkit\command.py", line 108, in ebstarterkit.command.EBCommandManager.requestExecution
+  File "python\ebstarterkit\command.py", line 412, in ebstarterkit.command.EBcheckVMState.__init__
+  File "python\ebstarterkit\command.py", line 305, in ebstarterkit.command.EBstartVBox.__init__
+  File "python\ebvbox\ebvboxmanager.py", line 127, in ebvbox.ebvboxmanager.EBVBoxManager.__init__
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\library_ext\vbox.py", line 22, in __init__
+    manager = virtualbox.Manager()
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\__init__.py", line 143, in __init__
+    self.manager = vboxapi.VirtualBoxManager(mtype, mparams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 989, in __init__
+    self.platform = PlatformMSCOM(dPlatformParams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 479, in __init__
+    win32com.client.gencache.EnsureDispatch('VirtualBox.Session')
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\gencache.py", line 527, in EnsureDispatch
+    disp = win32com.client.Dispatch(prog_id)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\__init__.py", line 95, in Dispatch
+    dispatch, userName = dynamic._GetGoodDispatchAndUserName(dispatch,userName,clsctx)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 114, in _GetGoodDispatchAndUserName
+    return (_GetGoodDispatch(IDispatch, clsctx), userName)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 91, in _GetGoodDispatch
+    IDispatch = pythoncom.CoCreateInstance(IDispatch, None, clsctx, pythoncom.IID_IDispatch)
+pywintypes.com_error: (-2147221164, 'Class not registered', None, None)
+_________________________________________________________________________
+
+                         Starting VM
+_________________________________________________________________________
+
+2020-05-15 14:51:20,453 [INFO  ]  [__main__] ====> Starting EB Starterkit Manager!!
+2020-05-15 14:51:20,454 [INFO  ]  [__main__] ====> Application is running with the argument 'startVBox'
+Traceback (most recent call last):
+  File "scripts/python/main.py", line 128, in <module>
+    main()
+  File "scripts/python/main.py", line 118, in main
+    Status = command.requestExecution(argument.command)
+  File "python\ebstarterkit\command.py", line 108, in ebstarterkit.command.EBCommandManager.requestExecution
+  File "python\ebstarterkit\command.py", line 305, in ebstarterkit.command.EBstartVBox.__init__
+  File "python\ebvbox\ebvboxmanager.py", line 127, in ebvbox.ebvboxmanager.EBVBoxManager.__init__
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\library_ext\vbox.py", line 22, in __init__
+    manager = virtualbox.Manager()
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\__init__.py", line 143, in __init__
+    self.manager = vboxapi.VirtualBoxManager(mtype, mparams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 989, in __init__
+    self.platform = PlatformMSCOM(dPlatformParams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 479, in __init__
+    win32com.client.gencache.EnsureDispatch('VirtualBox.Session')
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\gencache.py", line 527, in EnsureDispatch
+    disp = win32com.client.Dispatch(prog_id)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\__init__.py", line 95, in Dispatch
+    dispatch, userName = dynamic._GetGoodDispatchAndUserName(dispatch,userName,clsctx)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 114, in _GetGoodDispatchAndUserName
+    return (_GetGoodDispatch(IDispatch, clsctx), userName)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 91, in _GetGoodDispatch
+    IDispatch = pythoncom.CoCreateInstance(IDispatch, None, clsctx, pythoncom.IID_IDispatch)
+pywintypes.com_error: (-2147221164, 'Class not registered', None, None)
+_________________________________________________________________________
+
+NOTE: A virtual machine has been started and is executing in the back-
+      ground. Additionally, virtual drives have been mounted. If you
+      close this window now you might need to stop the virtual machines
+      manually.
+_________________________________________________________________________
+
+2020-05-15 14:51:20,971 [INFO  ]  [__main__] ====> Starting EB Starterkit Manager!!
+2020-05-15 14:51:20,971 [INFO  ]  [__main__] ====> Application is running with the argument 'checkCurrentMachineState'
+Traceback (most recent call last):
+  File "scripts/python/main.py", line 128, in <module>
+    main()
+  File "scripts/python/main.py", line 118, in main
+    Status = command.requestExecution(argument.command)
+  File "python\ebstarterkit\command.py", line 108, in ebstarterkit.command.EBCommandManager.requestExecution
+  File "python\ebstarterkit\command.py", line 602, in ebstarterkit.command.EBcheckCurrentMachineState.__init__
+  File "python\ebstarterkit\command.py", line 305, in ebstarterkit.command.EBstartVBox.__init__
+  File "python\ebvbox\ebvboxmanager.py", line 127, in ebvbox.ebvboxmanager.EBVBoxManager.__init__
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\library_ext\vbox.py", line 22, in __init__
+    manager = virtualbox.Manager()
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\virtualbox\__init__.py", line 143, in __init__
+    self.manager = vboxapi.VirtualBoxManager(mtype, mparams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 989, in __init__
+    self.platform = PlatformMSCOM(dPlatformParams)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\vboxapi\__init__.py", line 479, in __init__
+    win32com.client.gencache.EnsureDispatch('VirtualBox.Session')
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\gencache.py", line 527, in EnsureDispatch
+    disp = win32com.client.Dispatch(prog_id)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\__init__.py", line 95, in Dispatch
+    dispatch, userName = dynamic._GetGoodDispatchAndUserName(dispatch,userName,clsctx)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 114, in _GetGoodDispatchAndUserName
+    return (_GetGoodDispatch(IDispatch, clsctx), userName)
+  File "C:\EB\corbos\common_tools\Python27\lib\site-packages\win32com\client\dynamic.py", line 91, in _GetGoodDispatch
+    IDispatch = pythoncom.CoCreateInstance(IDispatch, None, clsctx, pythoncom.IID_IDispatch)
+pywintypes.com_error: (-2147221164, 'Class not registered', None, None)
+_____________________________________________________________________________
+Note: The virtual machine failed to start. Possible reasons are listed below-
+Hardware(H3ULCB) is not connected.
+VT-x is disabled.
+_____________________________________________________________________________
+Ending the process
+Press any key to continue . . .
