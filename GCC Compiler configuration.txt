@@ -16,7 +16,7 @@ LINUX:
 WINDOWS:
 1. Right click on your project folder and choose Properties (Alt+Enter)
 (Note: if the project is a C++-only project you will see both Cygwin C++ Compiler and Cygwin C Compiler tab; in this case make the following changes just to the latter)
-2. Go to C/C++ Build -> Settings and in GCC Compiler/Includes add the following path (may depend on configuration in installiation phase):
+2. Go to C/C++ Build -> Settings and in Cygwin Compiler/Includes add the following path (may depend on configuration in installiation phase):
 	"C:\cygwin64\usr\include\glib-2.0"
 	"C:\cygwin64\lib\glib-2.0\include"
 	"C:\cygwin64\usr\local\include\pbc"

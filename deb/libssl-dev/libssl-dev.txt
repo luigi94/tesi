@@ -1,0 +1,5 @@
+http://us.archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g_1.2.8.dfsg-2ubuntu4.3_amd64.deb
+http://us.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1ubuntu4.16_amd64.deb
+http://us.archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g-dev_1.2.8.dfsg-2ubuntu4.3_amd64.deb
+http://us.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.0.2g-1ubuntu4.16_amd64.deb
+http://us.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-doc_1.0.2g-1ubuntu4.16_all.deb

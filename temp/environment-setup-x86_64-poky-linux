@@ -1,0 +1,58 @@
+# Check for LD_LIBRARY_PATH being set, which can break SDK and generally is a bad practice
+# http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html#AEN80
+# http://xahlee.info/UnixResource_dir/_/ldpath.html
+# Only disable this check if you are absolutely know what you are doing!
+if [ ! -z "$LD_LIBRARY_PATH" ]; then
+    echo "Your environment is misconfigured, you probably need to 'unset LD_LIBRARY_PATH'"
+    echo "but please check why this was set in the first place and that it's safe to unset."
+    echo "The SDK will not operate correctly in most cases when LD_LIBRARY_PATH is set."
+    echo "For more references see:"
+    echo "  http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html#AEN80"
+    echo "  http://xahlee.info/UnixResource_dir/_/ldpath.html"
+    return 1
+fi
+export SDKTARGETSYSROOT=/opt/corbos-linux/2.4.4/sysroots/x86_64-poky-linux
+export PATH=/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/bin:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/sbin:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/bin:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/sbin:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/bin/../x86_64-pokysdk-linux/bin:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/bin/x86_64-poky-linux:/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/bin/x86_64-poky-linux-musl:$PATH
+export PKG_CONFIG_SYSROOT_DIR=$SDKTARGETSYSROOT
+export PKG_CONFIG_PATH=$SDKTARGETSYSROOT/usr/lib/pkgconfig:$SDKTARGETSYSROOT/usr/share/pkgconfig
+export CONFIG_SITE=/opt/corbos-linux/2.4.4/site-config-x86_64-poky-linux
+export OECORE_NATIVE_SYSROOT="/opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux"
+export OECORE_TARGET_SYSROOT="$SDKTARGETSYSROOT"
+export OECORE_ACLOCAL_OPTS="-I /opt/corbos-linux/2.4.4/sysroots/x86_64-pokysdk-linux/usr/share/aclocal"
+unset command_not_found_handle
+export CC="x86_64-poky-linux-gcc  -m64 --sysroot=$SDKTARGETSYSROOT"
+export CXX="x86_64-poky-linux-g++  -m64 --sysroot=$SDKTARGETSYSROOT"
+export CPP="x86_64-poky-linux-gcc -E  -m64 --sysroot=$SDKTARGETSYSROOT"
+export AS="x86_64-poky-linux-as  "
+export LD="x86_64-poky-linux-ld   --sysroot=$SDKTARGETSYSROOT"
+export GDB=x86_64-poky-linux-gdb
+export STRIP=x86_64-poky-linux-strip
+export RANLIB=x86_64-poky-linux-ranlib
+export OBJCOPY=x86_64-poky-linux-objcopy
+export OBJDUMP=x86_64-poky-linux-objdump
+export AR=x86_64-poky-linux-ar
+export NM=x86_64-poky-linux-nm
+export M4=m4
+export TARGET_PREFIX=x86_64-poky-linux-
+export CONFIGURE_FLAGS="--target=x86_64-poky-linux --host=x86_64-poky-linux --build=x86_64-linux --with-libtool-sysroot=$SDKTARGETSYSROOT"
+export CFLAGS=" -O2 -pipe -g -feliminate-unused-debug-types "
+export CXXFLAGS=" -O2 -pipe -g -feliminate-unused-debug-types "
+export LDFLAGS="-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed"
+export CPPFLAGS=""
+export KCFLAGS="--sysroot=$SDKTARGETSYSROOT"
+export OECORE_DISTRO_VERSION="1.7.0"
+export OECORE_SDK_VERSION="2.4.4"
+export ARCH=x86
+export CROSS_COMPILE=x86_64-poky-linux-
+
+# Append environment subscripts
+if [ -d "$OECORE_TARGET_SYSROOT/environment-setup.d" ]; then
+    for envfile in $OECORE_TARGET_SYSROOT/environment-setup.d/*.sh; do
+	    . $envfile
+    done
+fi
+if [ -d "$OECORE_NATIVE_SYSROOT/environment-setup.d" ]; then
+    for envfile in $OECORE_NATIVE_SYSROOT/environment-setup.d/*.sh; do
+	    . $envfile
+    done
+fi
