@@ -16,7 +16,8 @@ LDFLAGS = -O3 -Wall \
 	-Wl,-rpath /usr/local/lib -lgmp \
 	-Wl,-rpath /usr/local/lib -lpbc \
 	-lbswabe \
-	-lcrypto -lcrypto -lgmp
+	-lcrypto -lcrypto  \
+	-lgmp
 
 DISTNAME = cpabe-0.11
 

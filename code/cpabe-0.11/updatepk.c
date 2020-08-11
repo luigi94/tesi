@@ -10,10 +10,10 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-updatepk [OPTION ...] PUB_KEY UPDATE_KEY\n"
+"Usage: cpabe-updatepk [OPTION ...] PUB_KEY UPD_KEY\n"
 "\n"
-"Update the public key PUBLIC_KEY using the update key UPDATE_KEY up\n"
-"to UPDATE_KEY's version.\n"
+"Update the public key PUB_KEY using the update key UPD_KEY up\n"
+"to UPD_KEY's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"

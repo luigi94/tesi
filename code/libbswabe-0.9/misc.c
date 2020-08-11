@@ -399,6 +399,7 @@ bswabe_pub_free( bswabe_pub_t* pub )
 	element_clear(pub->g_hat_alpha);
 	pairing_clear(pub->p);
 	free(pub->pairing_desc);
+	pub->v_ek = 0;
 	free(pub);
 }
 
@@ -407,6 +408,7 @@ bswabe_msk_free( bswabe_msk_t* msk )
 {
 	element_clear(msk->beta);
 	element_clear(msk->g_alpha);
+	msk->v_mk = 0;
 	free(msk);
 }
 
@@ -428,6 +430,8 @@ bswabe_prv_free( bswabe_prv_t* prv )
 	}
 
 	g_array_free(prv->comps, 1);
+	
+	prv->v_dk = 0;
 
 	free(prv);
 }
@@ -457,6 +461,21 @@ bswabe_cph_free( bswabe_cph_t* cph )
 {
 	element_clear(cph->cs);
 	element_clear(cph->c);
+	cph->v_cp = 0;
 	bswabe_policy_free(cph->p);
 }
+
+void
+bswabe_upd_free( bswabe_upd_t* upd )
+{
+	while(upd != NULL){
+		element_clear(upd->u_cp);
+		element_clear(upd->u_pk);
+		upd->v_uk = 0;
+		upd = upd->next;
+	}
+}
+
+
+
 

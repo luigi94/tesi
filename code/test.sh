@@ -10,8 +10,8 @@ cd ..
 cd cpabe-0.11
 make clean
 ./configure
-sed '67s/result: policy { final_policy = $1 }/result: policy { final_policy = $1; }/' policy_lang.y > file.tmp && mv file.tmp policy_lang.y
-sed '19s/$/-lgmp/' Makefile > file.tmp && mv file.tmp Makefile
+#sed '67s/result: policy { final_policy = $1 }/result: policy { final_policy = $1; }/' policy_lang.y > file.tmp && mv file.tmp policy_lang.y
+#sed '19s/$/-lgmp/' Makefile > file.tmp && mv file.tmp Makefile
 make
 make install
 cd ..
@@ -42,6 +42,8 @@ cpabe-updatedk kevin_priv_key upd_key pub_key
 cpabe-updatecp document.txt.cpabe upd_key pub_key
 
 cpabe-dec pub_key kevin_priv_key document.txt.cpabe
+
+chmod 777 -R .
 << 'MULTILINE-COMMENT'
 
 MULTILINE-COMMENT

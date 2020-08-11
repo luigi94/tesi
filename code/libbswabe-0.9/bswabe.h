@@ -170,6 +170,8 @@ void bswabe_msk_free( bswabe_msk_t* msk );
 void bswabe_prv_free( bswabe_prv_t* prv );
 void bswabe_cph_free( bswabe_cph_t* cph );
 
+void bswabe_upd_free( bswabe_upd_t* upd );
+
 /*
   Return a description of the last error that occured. Call this after
   bswabe_enc or bswabe_dec returns 0. The returned string does not

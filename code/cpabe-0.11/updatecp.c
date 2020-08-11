@@ -11,9 +11,10 @@
 
 
 char* usage =
-"Usage: cpabe-updatecp [OPTION ...] CPH UPDATE_KEY PUB_KEY\n"
+"Usage: cpabe-updatecp [OPTION ...] CPH UPD_KEY PUB_KEY\n"
 "\n"
-"Blindly update the PRV_KEY using the update key UPDATE_KEY and public key PUB_KEY\n"
+"Blindly update the cipher-text CPH using the update key UPD_KEY\n"
+"and public key PUB_KEY parameters.\n"
 "The new ciphertext is updated up to the version \n"
 "of UPDATE_KEY.\n"
 "\n"
