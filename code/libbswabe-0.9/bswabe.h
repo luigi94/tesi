@@ -160,7 +160,7 @@ bswabe_msk_t* bswabe_msk_unserialize( bswabe_pub_t* pub, GByteArray* b, int free
 bswabe_prv_t* bswabe_prv_unserialize( bswabe_pub_t* pub, GByteArray* b, int free );
 bswabe_cph_t* bswabe_cph_unserialize( bswabe_pub_t* pub, GByteArray* b, int free );
 
-bswabe_upd_t* bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, int free );
+bswabe_upd_t* bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int free );
 
 /*
   Again, exactly what it seems.

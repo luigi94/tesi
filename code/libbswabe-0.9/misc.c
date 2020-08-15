@@ -7,6 +7,8 @@
 #include "bswabe.h"
 #include "private.h"
 
+#define UPD_LEN 160
+
 void
 serialize_uint32( GByteArray* b, uint32_t k )
 {
@@ -332,16 +334,9 @@ bswabe_upd_serialize( bswabe_upd_t* upd )
 		printf("Update Key is not initialized yet\n");
 		return NULL;
 	}
-	uint32_t elems = 0;
 	bswabe_upd_t* current_node = upd;
 	GByteArray* b;
 	b = g_byte_array_new();
-	while(current_node!= NULL){
-		elems++;
-		current_node = current_node->next;
-	}
-	current_node = upd;
-	serialize_uint32(b, elems);
 	while(current_node != NULL){
 		serialize_element(b, current_node->u_cp);
 		serialize_element(b, current_node->u_pk);
@@ -352,12 +347,22 @@ bswabe_upd_serialize( bswabe_upd_t* upd )
 }
 
 bswabe_upd_t*
-bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, int free )
+bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int free )
 {
 	int offset = 0;
 	uint32_t i;
-
-	uint32_t iter = unserialize_uint32(b, &offset);
+	uint32_t iter;
+	
+	FILE* fp = fopen(upd_file, "r"); 
+	if (fp == NULL)
+	{ 
+		printf("Error in opening file\n"); 
+		exit(1); 
+	} 
+	fseek(fp, 0L, SEEK_END); 
+	iter = (uint32_t) ftell(fp) / UPD_LEN;
+	fclose(fp);
+	
 	bswabe_upd_t* upd = NULL;
 	bswabe_upd_t* current_node = NULL;
 
@@ -365,7 +370,7 @@ bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, int free )
 		bswabe_upd_t*  new_node = (bswabe_upd_t*)malloc(sizeof(bswabe_upd_t));
 		if (new_node == NULL){
 			printf("Error during allocation\n");
-			break;
+			exit(1);
 		}
 		element_init_Zr(new_node->u_cp, pub->p);
 		element_init_G1(new_node->u_pk, pub->p);

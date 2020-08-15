@@ -74,7 +74,7 @@ main( int argc, char** argv )
 	
 	unlink(pub_file);
 	
-	upd = bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
+	upd = bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1);
 	
 	bswabe_update_pk(&pub, upd);
 	

@@ -86,7 +86,7 @@ main( int argc, char** argv )
 	
 	unlink(cph_file);
 	
-	bswabe_update_cp(cph, bswabe_upd_unserialize(pub, suck_file(upd_file), 1), pub);
+	bswabe_update_cp(cph, bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1), pub);
 	
 	cph_buf = bswabe_cph_serialize(cph);
 	bswabe_cph_free(cph);

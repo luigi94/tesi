@@ -76,7 +76,7 @@ main( int argc, char** argv )
 	parse_args(argc, argv);
 	
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	upd = bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
+	upd = bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1);
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 	unlink(prv_file);
 	
