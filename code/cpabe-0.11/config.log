@@ -352,7 +352,7 @@ configure:3876: $? = 0
 configure:3876: result: yes
 configure:3882: checking for _doprnt
 configure:3882: gcc -o conftest -O3 -Wall  -O3 -Wall conftest.c  >&5
-/usr/bin/ld: /tmp/ccCymcQV.o: in function `main':
+/usr/bin/ld: /tmp/ccu7QhIS.o: in function `main':
 conftest.c:(.text.startup+0xb): undefined reference to `_doprnt'
 collect2: error: ld returned 1 exit status
 configure:3882: $? = 1

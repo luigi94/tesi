@@ -24,11 +24,6 @@ chmod 777 document.txt
 cpabe-setup
 cpabe-updatemk pub_key master_key upd_key
 cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
 
 cpabe-updatepk pub_key upd_key
 

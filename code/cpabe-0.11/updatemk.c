@@ -88,7 +88,7 @@ main( int argc, char** argv )
 		upd = bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1);
 		unlink(upd_file);	
 	}
-	unlink(msk_file);
+	
 	bswabe_update_mk(&msk, pub, &upd);
 	
 	spit_file(msk_file, bswabe_msk_serialize(msk), 1);

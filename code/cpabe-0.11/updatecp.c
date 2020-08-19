@@ -84,8 +84,6 @@ main( int argc, char** argv )
 	read_cpabe_file(cph_file, &cph_buf, &file_len, &aes_buf);
 	cph = bswabe_cph_unserialize(pub, cph_buf, 0);
 	
-	unlink(cph_file);
-	
 	bswabe_update_cp(cph, bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1), pub);
 	
 	cph_buf = bswabe_cph_serialize(cph);
