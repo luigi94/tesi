@@ -28,7 +28,7 @@ struct bswabe_upd_s
 {
 	
 	element_t u_cp;    /* Z_r */
-	element_t u_pk; /* Z_r */
+	element_t u_pk; /* G_1 */
 	/* element_t u_dk; // is the inverse of u_cp */
 	
 	/* version */

@@ -480,7 +480,3 @@ bswabe_upd_free( bswabe_upd_t* upd )
 		upd = upd->next;
 	}
 }
-
-
-
-

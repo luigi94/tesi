@@ -80,7 +80,6 @@ main( int argc, char** argv )
 	bswabe_upd_t* upd = NULL;
 
 	parse_args(argc, argv);
-	pbc_random_set_deterministic((int)(how_many_upd(upd_file) + 47));
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	
