@@ -789,9 +789,10 @@ void
 bswabe_update_mk( bswabe_msk_t** msk, bswabe_pub_t* pub, bswabe_upd_t** upd)
 {
 	element_t beta;
+	bswabe_upd_t* new_node;
 
 	/* initialize */
-	if((bswabe_upd_t* new_node = malloc(sizeof(bswabe_upd_t))) == NULL){
+	if((new_node = (bswabe_upd_t*)malloc(sizeof(bswabe_upd_t))) == NULL){
 		printf("Error in malloc() (1)\n");
 		exit(1);
 	}
