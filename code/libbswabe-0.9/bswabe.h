@@ -177,7 +177,13 @@ void bswabe_upd_free( bswabe_upd_t* upd );
   bswabe_enc or bswabe_dec returns 0. The returned string does not
   need to be free'd.
 */
+
 char* bswabe_error();
+
+/*
+	Return the number of upd(s)
+*/
+uint32_t how_many_upd(char* upd_file);
 
 #if defined (__cplusplus)
 } // extern "C"

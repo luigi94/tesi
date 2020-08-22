@@ -78,7 +78,6 @@ main( int argc, char** argv )
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1);
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
-	
 	bswabe_update_dk(prv, upd, pub);
 
 	spit_file(prv_file, bswabe_prv_serialize(prv), 1);
