@@ -785,35 +785,61 @@ bswabe_dec( bswabe_pub_t* pub, bswabe_prv_t* prv, bswabe_cph_t* cph, element_t m
 	return 1;
 }
 
+int
+check_consistency(bswabe_upd_t* upd) // 1 if consistent, 0 otherwise
+{
+	uint32_t last_version;
+	uint32_t current_version;
+	
+	bswabe_upd_t* current_node = upd;
+	last_version = current_node->v_uk;
+	if(last_version <= 0)
+		return 0;
+	current_node = current_node -> next;
+	while(current_node != NULL){
+		current_version = current_node->v_uk;
+		if(current_version <= 0 || last_version != current_version - (uint32_t) 1)
+			return 0;
+		last_version = current_version;
+		current_node = current_node -> next;
+	}
+	return 1;
+}
+
 void
 bswabe_update_mk( bswabe_msk_t** msk, bswabe_pub_t* pub, bswabe_upd_t** upd)
 {
 	element_t beta;
 	bswabe_upd_t* new_node;
+	bswabe_upd_t* current_node;
 
 	/* initialize */
 	if((new_node = (bswabe_upd_t*)malloc(sizeof(bswabe_upd_t))) == NULL){
 		printf("Error in malloc() (1)\n");
 		exit(1);
 	}
-	element_init_Zr(beta, pub->p);
-	element_init_Zr(new_node->u_cp, pub->p);
-	element_init_G1(new_node->u_pk, pub->p);
-
-	bswabe_upd_t* current_node = *upd;
-
-	element_random(beta);
-
+	
+	current_node = *upd;
+	
 	/* compute */
 	while ( current_node != NULL && current_node->next != NULL)
 		current_node = current_node->next;
 
 	if(current_node == NULL)
 		new_node->v_uk = 1;
-	else
+	else{
+		if(!check_consistency(current_node)){
+			printf("Error in version (1)\n");
+			exit(1);
+		}
 		new_node->v_uk = current_node->v_uk + 1;
+	}
+	
+	element_init_Zr(beta, pub->p);
+	element_init_Zr(new_node->u_cp, pub->p);
+	element_init_G1(new_node->u_pk, pub->p);
 
-
+	element_random(beta);
 	element_div(new_node->u_cp, beta, (*msk)->beta);	// new_node->u_cp => beta_vmk / (beta_vmk - 1)
 	element_pow_zn(new_node->u_pk, pub->g, beta);		// new_node->u_pk => g^beta_vmk
 	element_set((*msk)->beta, beta);					// beta_vmk => beta_vmk -1
@@ -833,6 +859,11 @@ void
 bswabe_update_pk(bswabe_pub_t** pub, bswabe_upd_t* upd)
 {
 	assert(upd != NULL);
+	if(!check_consistency(upd)){
+		printf("Error in version (2)\n");
+		exit(1);
+	}
+	
 	bswabe_upd_t* current_node = upd;
 	
 	while(current_node->next != NULL)
@@ -842,26 +873,6 @@ bswabe_update_pk(bswabe_pub_t** pub, bswabe_upd_t* upd)
 	element_set((*pub)->h, current_node->u_pk);
 }
 
-int
-check_consistency(bswabe_upd_t* upd) // 1 if consistent, 0 otherwise
-{
-	uint32_t last_version;
-	uint32_t current_version;
-	
-	bswabe_upd_t* current_node = upd;
-	last_version = current_node->v_uk;
-	if(last_version <= 0)
-		return 0;
-	current_node = current_node -> next;
-	while(current_node != NULL){
-		current_version = current_node->v_uk;
-		if(current_version <= 0 || current_version != last_version - (uint32_t) 1)
-			return 0;
-		current_node = current_node -> next;
-	}
-	return 1;
-}
-
 void
 bswabe_update_dk(bswabe_prv_t* prv, bswabe_upd_t* upd, bswabe_pub_t* pub)
 {
@@ -869,12 +880,13 @@ bswabe_update_dk(bswabe_prv_t* prv, bswabe_upd_t* upd, bswabe_pub_t* pub)
 	uint32_t version = prv->v_dk;
 	element_init_Zr(exp, pub->p);
 	bswabe_upd_t* current_node = upd;
-	
-	if(check_consistency(current_node)){
-		printf("Error in version (1)\n");
+
+	assert(upd != NULL);
+	if(!check_consistency(upd)){
+		printf("Error in version (3)\n");
 		exit(1);
 	}
-	
+
 	while(current_node->v_uk <= version){	// Find the upd such its version is v_dk+1
 		if(current_node->v_uk == version){
 			current_node = current_node->next;
@@ -884,7 +896,7 @@ bswabe_update_dk(bswabe_prv_t* prv, bswabe_upd_t* upd, bswabe_pub_t* pub)
 		}
 		current_node = current_node->next;
 		if(current_node == NULL){
-			printf("Error in version (2)\n");
+			printf("Error in version (4)\n");
 			exit(1);
 		}
 	}
@@ -910,6 +922,13 @@ bswabe_update_cp(bswabe_cph_t* cph, bswabe_upd_t* upd, bswabe_pub_t* pub)
 	element_init_Zr(exp, pub->p);
 	bswabe_upd_t* current_node = upd;
 	uint32_t version = cph->v_cp;
+	
+	assert(upd != NULL);
+	if(!check_consistency(upd)){
+		printf("Error in version (5)\n");
+		exit(1);
+	}
+	
 	while(current_node->v_uk <= version){	// Find the upd such its version is v_dk+1
 		if(current_node->v_uk == version){
 			current_node = current_node->next;
@@ -919,7 +938,7 @@ bswabe_update_cp(bswabe_cph_t* cph, bswabe_upd_t* upd, bswabe_pub_t* pub)
 		}
 		current_node = current_node->next;
 		if(current_node == NULL){
-			printf("Error in version (3)\n");
+			printf("Error in version (6)\n");
 			exit(1);
 		}
 	}
@@ -957,7 +976,6 @@ how_many_upd(char* upd_file)
 	fclose(f);
 	return iter;
 }
-
 void print_upd_t(bswabe_upd_t *head) {
 	if(head == NULL){
 		printf("UPD not initilized yet\n");

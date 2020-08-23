@@ -35,8 +35,6 @@ cpabe-keygen -o kevin_priv_key pub_key master_key \
     
 cpabe-enc pub_key document.txt '(sysadmin and (hire_date < 946702800 or security_team)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team))'
 
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
 cpabe-updatepk pub_key upd_key
 
 cpabe-updatedk kevin_priv_key upd_key pub_key
