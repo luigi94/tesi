@@ -356,7 +356,7 @@ bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int fr
 	FILE* fp = fopen(upd_file, "r"); 
 	if (fp == NULL)
 	{ 
-		printf("Error in opening file\n"); 
+		printf("Error in opening file (2)\n"); 
 		exit(1); 
 	} 
 	fseek(fp, 0L, SEEK_END); 
@@ -369,7 +369,7 @@ bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int fr
 	for(i = 0; i < iter; i++){
 		bswabe_upd_t*  new_node = (bswabe_upd_t*)malloc(sizeof(bswabe_upd_t));
 		if (new_node == NULL){
-			printf("Error during allocation\n");
+			printf("Error in malloc() (2)\n");
 			exit(1);
 		}
 		element_init_Zr(new_node->u_cp, pub->p);

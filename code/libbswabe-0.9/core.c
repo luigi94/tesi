@@ -967,7 +967,7 @@ how_many_upd(char* upd_file)
 		
 	if ((f = fopen(upd_file, "r") ) == NULL)
 	{ 
-		printf("Error in opening file\n"); 
+		printf("Error in opening file (1)\n"); 
 		exit(1); 
 	} 
 	fseek(f, 0L, SEEK_END);
