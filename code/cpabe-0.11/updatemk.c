@@ -85,7 +85,6 @@ main( int argc, char** argv )
 	
 	if( access( upd_file, F_OK ) != -1 ){
 		upd = bswabe_upd_unserialize(pub, suck_file(upd_file), upd_file, 1);
-		unlink(upd_file);	
 	}
 	
 	bswabe_update_mk(&msk, pub, &upd);

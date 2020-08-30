@@ -102,11 +102,6 @@ void bswabe_update_mk( bswabe_msk_t** msk, bswabe_pub_t* pub, bswabe_upd_t** upd
 void bswabe_update_pk(bswabe_pub_t** pub, bswabe_upd_t* upd);
 
 /*
-	Update the (user's) private key (decryption key)
-*/
-void bswabe_update_prv(bswabe_prv_t** prv, bswabe_upd_t* upd, bswabe_pub_t* pub);
-
-/*
 	Update the decryption key
 */
 void bswabe_update_dk(bswabe_prv_t* prv, bswabe_upd_t* upd, bswabe_pub_t* pub);

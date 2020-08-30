@@ -94,7 +94,6 @@ int bswabe_dec( bswabe_pub_t* pub, bswabe_prv_t* prv,
 	Update the master secret key and generates a new update key
 */
 void bswabe_update_mk( bswabe_msk_t** msk, bswabe_pub_t* pub, bswabe_upd_t** upd);
-void bswabe_update_mk_bis( bswabe_pub_t* pub, char* msk_file);
 
 /*
 	Update de private Public key
