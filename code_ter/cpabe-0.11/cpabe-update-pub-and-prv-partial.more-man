@@ -5,4 +5,6 @@
 .BR cpabe-dec (1),
 .BR cpabe-updatemk (1),
 .BR cpabe-updatepk (1),
-.BR cpabe-updatecp (1)
+.BR cpabe-updatecp (1),
+.BR cpabe-update-partial-updates (1),
+.BR cpabe-print(1)

@@ -13,7 +13,7 @@
 char* usage =
 "Usage: cpabe-setup TYPE KEY PUB\n"
 "\n"
-"Print the KEY of type TYPE\n"
+"Print the KEY of type TYPE.\n"
 "";
 
 int

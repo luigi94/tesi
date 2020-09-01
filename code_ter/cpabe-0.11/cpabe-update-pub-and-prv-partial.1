@@ -1,13 +1,11 @@
-.TH CPABE-UPDATEDK "1" "August 2020" "SRI International" "User Commands"
+.TH CPABE-UPDATE-PUB-AND-PRV-PARTIAL "1" "September 2020" "SRI International" "User Commands"
 .SH NAME
-cpabe-updatedk \- manual page for cpabe-updatedk 0.1
+cpabe-update-pub-and-prv-partial \- manual page for cpabe-update-pub-and-prv-partial 0.1
 .SH SYNOPSIS
-.B cpabe-updatedk
-[\fIOPTION \fR...] \fIPRV_KEY UPD_KEY PUB_KEY \fR
+.B cpabe-update-pub-and-prv-partial
+[\fIOPTION \fR...] \fIPARTIAL_UPDATES PUB_KEY PRV_KEY \fR
 .SH DESCRIPTION
-Update the PRV_KEY using the update key UPD_KEY and public key PUB_KEY.
-.PP
-The new decription key is updated up to UPD_KEY's version.
+Update the public (encryption) key PUB_KEY and the private (decryption) key PRV_KEY using the quantities carried by PARTIAL_UPDATES.
 .PP
 Mandatory arguments to long options are mandatory for short options too.
 .TP
@@ -16,10 +14,6 @@ print this message
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print version information
-.TP
-\fB\-d\fR, \fB\-\-deterministic\fR
-use deterministic "random" numbers
-(only for debugging)
 .PP
 Parts Copyright (C) 2006, 2007 John Bethencourt and SRI International.
 This is free software released under the GPL, see the source for copying
@@ -27,9 +21,9 @@ conditions. There is NO warranty; not even for MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.
 .SH EXAMPLES
 
-Update Kevin's private (decryption) key:
+Update "pub_key" and "kevin_priv_key" using "partial_updates":
 
-  $ cpabe-updatedk kevin_priv_key upd_key pub_key
+  $ cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
 
 .SH "REPORTING BUGS"
 Report bugs to ???
@@ -40,4 +34,6 @@ Report bugs to ???
 .BR cpabe-dec (1),
 .BR cpabe-updatemk (1),
 .BR cpabe-updatepk (1),
-.BR cpabe-updatecp (1)
+.BR cpabe-updatecp (1),
+.BR cpabe-update-partial-updates (1),
+.BR cpabe-print(1)

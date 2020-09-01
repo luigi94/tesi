@@ -796,7 +796,7 @@ uint32_t how_many_upd(char* upd_file)
 		
 	if ((f = fopen(upd_file, "r") ) == NULL)
 	{ 
-		printf("Error in opening file (6)\n"); 
+		printf("Error in opening file (7)\n"); 
 		exit(1); 
 	} 
 	fseek(f, 0L, SEEK_END);
@@ -817,11 +817,11 @@ check_consistency(char* upd_file) // 1 if consistent, 0 otherwise
 	long dim;
 	int i;
 	if((f = fopen(upd_file, "r")) == NULL){
-		printf("Error in opening file (7)\n");
+		printf("Error in opening file (8)\n");
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (15)\n");
+		printf("Error in malloc() (21)\n");
 		exit(1);
 	}
 	pointer = 156L;
@@ -991,11 +991,6 @@ bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
 	FILE* f_prv;
 	FILE* f_upd;
 	
-	bswabe_prv_t* prv;
-	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
-	printf("Private key before beign updated\n");
-	print_prv_t(prv);
-	
 	if(!check_consistency(upd_file)){
 		printf("Error in version (3)\n");
 		exit(1);
@@ -1086,9 +1081,7 @@ bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
 	fseek(f_prv, 4L, SEEK_SET);
 	fread(buf, 1, 128L, f_prv);
 	element_from_bytes(base, buf);
-	element_printf("Old base: %B\n", base);
 	element_pow_zn(base, base, exp);
-	element_printf("New Base: %B\n", base);
 	element_to_bytes(buf, base);
 	fseek(f_prv, 4L, SEEK_SET);
 	fwrite(buf, 1, 128L, f_prv);
@@ -1121,7 +1114,7 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	GByteArray* cph_buf;
 	
 	if(!check_consistency(upd_file)){
-		printf("Error in version (4)\n");
+		printf("Error in version (5)\n");
 		exit(1);
 	}
 	
@@ -1166,7 +1159,7 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 		}
 		pointer += 160L;
 		if(pointer > dim){
-			printf("Error in version (5)\n");
+			printf("Error in version (6)\n");
 			exit(1);
 		}
 	}
@@ -1246,18 +1239,18 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 	FILE* f_upd;
 	
 	if(!check_consistency(upd_file)){
-		printf("Error in version (3)\n");
+		printf("Error in version (7)\n");
 		exit(1);
 	}
 	
 	if((f_updates = fopen(updates_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
-		printf("Error in opening file (3)\n");
+		printf("Error in opening file (5)\n");
 		exit(1);
 	}
 	
 	// Fetch decryption key version
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (6)\n");
+		printf("Error in malloc() (14)\n");
 		exit(1);
 	}
 	
@@ -1288,7 +1281,7 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 		}
 		pointer += 160L;
 		if(pointer > dim){
-			printf("Error in version (4)\n");
+			printf("Error in version (8)\n");
 			exit(1);
 		}
 	}
@@ -1298,7 +1291,7 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 	element_init_Zr(exp, pub->p);
 	element_init_Zr(current_exp, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
-		printf("Error in malloc() (7)\n");
+		printf("Error in malloc() (15)\n");
 		exit(1);
 	}
 	element_set1(exp);
@@ -1306,7 +1299,7 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 		if(pointer > dim){
 			free(buf);
 			if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-				printf("Error in malloc() (8)\n");
+				printf("Error in malloc() (16)\n");
 				exit(1);
 			}
 			// Write version
@@ -1318,7 +1311,7 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 			free(buf);
 			
 			if((buf = (unsigned char*) malloc(128)) == NULL){
-				printf("Error in malloc() (8)\n");
+				printf("Error in malloc() (17)\n");
 				exit(1);
 			}
 			
@@ -1343,15 +1336,13 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 	element_invert(exp, exp);
 	element_init_G2(base, pub->p);
 	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (9)\n");
+		printf("Error in malloc() (18)\n");
 		exit(1);
 	}
 	// Write new d
 	fread(buf, 1, 128L, f_updates);
 	element_from_bytes(base, buf);
-	element_printf("---Old base: %B\n", base);
 	element_pow_zn(base, base, exp);
-	element_printf("---New base: %B\n", base);
 	element_to_bytes(buf, base);
 	fseek(f_updates, 132L, SEEK_SET);
 	fwrite(buf, 1, 128L, f_updates);
@@ -1371,16 +1362,14 @@ bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_fil
 	FILE* f_updates;
 	FILE* f_pub;
 	FILE* f_prv;
-	element_t h;
-	element_t d;
 	
 	if((f_updates = fopen(partial_updates_file, "r")) == NULL || (f_prv = fopen(prv_file, "r+")) == NULL || (f_pub = fopen(pub_file, "r+")) == NULL) {
-		printf("Error in opening file (3)\n");
+		printf("Error in opening file (6)\n");
 		exit(1);
 	}
 	
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (6)\n");
+		printf("Error in malloc() (19)\n");
 		exit(1);
 	}
 	
@@ -1396,7 +1385,7 @@ bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_fil
 	free(buf);
 	
 	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (6)\n");
+		printf("Error in malloc() (20)\n");
 		exit(1);
 	}
 	

@@ -103,9 +103,7 @@ bswabe_pub_serialize( bswabe_pub_t* pub )
 	b = g_byte_array_new();
 	serialize_string(b,  pub->pairing_desc);
 	serialize_element(b, pub->g);
-	printf("Before h: %u\n", b->len);
 	serialize_element(b, pub->h);
-	printf("After h: %u\n", b->len);
 	serialize_element(b, pub->gp);
 	serialize_element(b, pub->g_hat_alpha);
 
@@ -205,18 +203,16 @@ bswabe_build_partial_updates_and_serialize(bswabe_msk_t* msk, bswabe_prv_t* prv,
 {
 	GByteArray* b;
 	unsigned char* buf;
-	printf("Extracting partial private key\n");
 	b = g_byte_array_new();
 	
 	serialize_uint32(b, msk->v_mk);
 	
 	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (1a)\n");
+		printf("Error in malloc() (22)\n");
 		exit(1);
 	}
 	
 	element_to_bytes(buf, pub->h);
-	element_printf("--- pub->h: %B\n", pub->h);
 	g_byte_array_append(b, buf, 128);
 	
 	element_to_bytes(buf, prv->d);
@@ -382,7 +378,7 @@ bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int fr
 	FILE* fp = fopen(upd_file, "r"); 
 	if (fp == NULL)
 	{ 
-		printf("Error in opening file (5)\n"); 
+		printf("Error in opening file (9)\n"); 
 		exit(1); 
 	} 
 	fseek(fp, 0L, SEEK_END); 
@@ -395,7 +391,7 @@ bswabe_upd_unserialize( bswabe_pub_t* pub, GByteArray* b, char* upd_file, int fr
 	for(i = 0; i < iter; i++){
 		bswabe_upd_t*  new_node = (bswabe_upd_t*)malloc(sizeof(bswabe_upd_t));
 		if (new_node == NULL){
-			printf("Error in malloc() (14)\n");
+			printf("Error in malloc() (23)\n");
 			exit(1);
 		}
 		element_init_Zr(new_node->u_cp, pub->p);

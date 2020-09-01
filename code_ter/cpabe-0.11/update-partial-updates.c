@@ -11,16 +11,14 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-updatedk [OPTION ...] PARTIAL_PRV_KEY UPD_KEY PUB_KEY\n"
+"Usage: cpabe-updatedk [OPTION ...] PARTIAL_UPDATES UPD_KEY PUB_KEY\n"
 "\n"
-"Update the PRV_KEY using the update key UPD_KEY and public key PUB_KEY.\n"
-"The new decription key is updated up to UPD_KEY's version.\n"
+"Using the updated public (encryption) key PUB_KEY and the quantities\n"
+"carried by UPD_KEY, update the partial updates carried bt PARTIAL_UPDATES.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
 " -v, --version            print version information\n\n"
-" -d, --deterministic      use deterministic \"random\" numbers\n"
-"                          (only for debugging)\n\n"
 "";
 
 char*  updates_file = 0;
@@ -40,7 +38,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-updatedk");
+			printf(CPABE_VERSION, "-update-partial-updates");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
