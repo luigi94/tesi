@@ -21,7 +21,7 @@ LDFLAGS = @LDFLAGS@ \
 
 DISTNAME = @PACKAGE_TARNAME@-@PACKAGE_VERSION@
 
-TARGETS  = cpabe-setup   cpabe-enc   cpabe-keygen   cpabe-dec   cpabe-updatemk   cpabe-updatepk   cpabe-updatedk   cpabe-updatecp
+TARGETS  = cpabe-setup cpabe-enc cpabe-keygen cpabe-dec cpabe-updatemk cpabe-updatepk cpabe-updatedk cpabe-updatecp cpabe-update-partial-updates cpabe-update-pub-and-prv-partial cpabe-print
 DEVTARGS = test-lang TAGS
 
 MANUALS  = $(TARGETS:=.1)
@@ -53,6 +53,15 @@ cpabe-updatedk: updatedk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
 cpabe-updatecp: updatecp.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+cpabe-update-partial-updates: update-partial-updates.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+cpabe-update-pub-and-prv-partial: update-pub-and-prv-partial.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+cpabe-print: print.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 test-lang: test-lang.o common.o policy_lang.o

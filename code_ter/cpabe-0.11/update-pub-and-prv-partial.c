@@ -11,9 +11,9 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-updatedk [OPTION ...] PARTIAL_PRV_KEY UPD_KEY PUB_KEY\n"
+"Usage: cpabe-build-updates [OPTION ...] PARTIAL_PRV_KEY PUB_KEY PRV_KEY\n"
 "\n"
-"Update the PRV_KEY using the update key UPD_KEY and public key PUB_KEY.\n"
+" DA MODIFICARE... PRV_KEY using the update key UPD_KEY and public key PUB_KEY.\n"
 "The new decription key is updated up to UPD_KEY's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
@@ -24,7 +24,7 @@ char* usage =
 "";
 
 char*  partial_prv_file = 0;
-char*  upd_file = 0;
+char*  prv_file = 0;
 char*  pub_file = 0;
 
 void
@@ -51,32 +51,29 @@ parse_args( int argc, char** argv )
 		{
 			partial_prv_file = argv[i];
 		}
-		else if( !upd_file )
-		{
-			upd_file = argv[i];
-		}
 		else if( !pub_file )
 		{
 			pub_file = argv[i];
+		}
+		else if( !prv_file )
+		{
+			prv_file = argv[i];
 		}
 		else
 		{
 			die(usage);
 		}
-	if( !pub_file || !upd_file || !partial_prv_file )
+	if( !prv_file || !partial_prv_file )
 		die(usage);
 }
 
 int
 main( int argc, char** argv )
 {
-	bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
 	
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	
-	bswabe_update_partial_dk(pub, partial_prv_file, upd_file);
+	bswabe_update_pub_and_prv_keys_partial(partial_prv_file, pub_file, prv_file);
 	
 	return 0;
 }

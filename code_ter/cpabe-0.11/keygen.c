@@ -144,7 +144,7 @@ main( int argc, char** argv )
 	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	prv = bswabe_keygen(pub, msk, attrs);
 	spit_file(out_file, bswabe_prv_serialize(prv), 1);
-	spit_file(partial_key_file, bswabe_prv_extract_partial_and_serialize(prv), 1);
+	spit_file(partial_key_file, bswabe_build_partial_updates_and_serialize(prv, pub), 1);
 
 	return 0;
 }

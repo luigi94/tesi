@@ -11,6 +11,7 @@
 #include <pbc.h>
 
 #include "bswabe.h"
+#include "common.h"
 #include "private.h"
 
 #define TYPE_A_PARAMS \
@@ -990,6 +991,11 @@ bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
 	FILE* f_prv;
 	FILE* f_upd;
 	
+	bswabe_prv_t* prv;
+	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
+	printf("Private key before beign updated\n");
+	print_prv_t(prv);
+	
 	if(!check_consistency(upd_file)){
 		printf("Error in version (3)\n");
 		exit(1);
@@ -1029,7 +1035,7 @@ bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
 		if(current_version == version){
 			pointer += 8L;
 			if(pointer > dim)
-				return 0;
+				return;
 			break;
 		}
 		pointer += 160L;
@@ -1111,8 +1117,6 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	int file_len;
 	GByteArray* aes_buf;
 	GByteArray* cph_buf;
-	bswabe_cph_t* cph;
-	
 	
 	if(!check_consistency(upd_file)){
 		printf("Error in version (4)\n");
@@ -1120,7 +1124,6 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	}
 	
 	read_cpabe_file(cph_file, &cph_buf, &file_len, &aes_buf);
-	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 
 	if((f_cph = fopen(cph_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
 		printf("Error in opening file (4)\n");
@@ -1225,8 +1228,9 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 }
 
 void
-bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_file)
+bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_file)
 {
+	/* TODO update the error messages */
 	element_t exp;
 	element_t current_exp;
 	element_t base;
@@ -1236,7 +1240,7 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 	int i;
 	long dim;
 	long pointer;
-	FILE* f_prv;
+	FILE* f_updates;
 	FILE* f_upd;
 	
 	if(!check_consistency(upd_file)){
@@ -1244,7 +1248,7 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 		exit(1);
 	}
 	
-	if((f_prv = fopen(partial_prv_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
+	if((f_updates = fopen(updates_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
 		printf("Error in opening file (3)\n");
 		exit(1);
 	}
@@ -1254,9 +1258,8 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 		printf("Error in malloc() (6)\n");
 		exit(1);
 	}
-	fseek(f_prv, -4L, SEEK_END);
 	
-	fread(buf, 1, 4L, f_prv);
+	fread(buf, 1, 4L, f_updates);
 	version = 0;
 	for(i = 3; i >= 0; i-- )
 		version |= (buf[(3 - i)])<<(i*8);
@@ -1291,7 +1294,7 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 	
 	// Fetch all u_cp(s)
 	element_init_Zr(exp, pub->p);
-		element_init_Zr(current_exp, pub->p);
+	element_init_Zr(current_exp, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
 		printf("Error in malloc() (7)\n");
 		exit(1);
@@ -1307,8 +1310,8 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 			pointer -= 8L;
 			fseek(f_upd, pointer, SEEK_SET);
 			fread(buf, 1, 4L, f_upd);
-			fseek(f_prv, -4L, SEEK_END);
-			fwrite(buf, 1, 4L, f_prv);
+			fseek(f_updates, 0L, SEEK_SET);
+			fwrite(buf, 1, 4L, f_updates);
 			break;
 		}
 		fseek(f_upd, pointer, SEEK_SET);
@@ -1326,20 +1329,77 @@ bswabe_update_partial_dk(bswabe_pub_t* pub, char* partial_prv_file, char* upd_fi
 		printf("Error in malloc() (9)\n");
 		exit(1);
 	}
-	fseek(f_prv, 0L, SEEK_SET);
-	fread(buf, 1, 128L, f_prv);
+	
+	element_to_bytes(buf, pub->h);
+	fseek(f_updates, 4L, SEEK_SET);
+	fwrite(buf, 1, 128L, f_updates);	
+
+	fread(buf, 1, 128L, f_updates);
 	element_from_bytes(base, buf);
 	element_pow_zn(base, base, exp);
 	element_to_bytes(buf, base);
-	fseek(f_prv, 4L, SEEK_SET);
-	fwrite(buf, 1, 128L, f_prv);
+	fseek(f_updates, 132L, SEEK_SET);
+	fwrite(buf, 1, 128L, f_updates);
+	
 	free(buf);
 	
 	element_clear(exp);
 	element_clear(current_exp);
 	element_clear(base);
 	fclose(f_upd);
+	fclose(f_updates);
+}
+
+void
+bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_file, char* prv_file)
+{
+	/* TODO update the error messages */
+	unsigned char* buf;
+	FILE* f_updates;
+	FILE* f_pub;
+	FILE* f_prv;
+	
+	if((f_updates = fopen(partial_updates_file, "r")) == NULL || (f_prv = fopen(prv_file, "r+")) == NULL || (f_pub = fopen(pub_file, "r+")) == NULL) {
+		printf("Error in opening file (3)\n");
+		exit(1);
+	}
+	
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		printf("Error in malloc() (6)\n");
+		exit(1);
+	}
+	
+	fread(buf, 1, 4L, f_updates);
+	
+	// Update decryption key version
+	fseek(f_prv, -4L, SEEK_END);
+	fwrite(buf, 1, 4L, f_prv);
+	
+	//Update public key version
+	fseek(f_pub, -4L, SEEK_END);
+	fwrite(buf, 1, 4L, f_pub);
+	free(buf);
+	
+	if((buf = (unsigned char*) malloc(128)) == NULL){
+		printf("Error in malloc() (6)\n");
+		exit(1);
+	}
+	
+	fread(buf, 1, 128L, f_updates);
+	
+	// Update
+	fseek(f_prv, 0L, SEEK_SET);
+	fwrite(buf, 1, 128L, f_prv);
+	
+	fseek(f_pub, 492, SEEK_SET);
+	fwrite(buf, 1, 128L, f_pub);
+	
+	free(buf);
+	
+	fclose(f_updates);
 	fclose(f_prv);
+	fclose(f_pub);
+
 }
 
 void print_upd_t(bswabe_upd_t *head) {

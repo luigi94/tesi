@@ -147,7 +147,7 @@ main( int argc, char** argv )
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 	read_cpabe_file(in_file, &cph_buf, &file_len, &aes_buf);
-
+	print_prv_t(prv);
 	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 	
 	if( !bswabe_dec(pub, prv, cph, m) )

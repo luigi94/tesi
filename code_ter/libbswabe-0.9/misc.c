@@ -103,7 +103,9 @@ bswabe_pub_serialize( bswabe_pub_t* pub )
 	b = g_byte_array_new();
 	serialize_string(b,  pub->pairing_desc);
 	serialize_element(b, pub->g);
+	printf("Before h: %u\n", b->len);
 	serialize_element(b, pub->h);
+	printf("After h: %u\n", b->len);
 	serialize_element(b, pub->gp);
 	serialize_element(b, pub->g_hat_alpha);
 
@@ -199,21 +201,27 @@ bswabe_prv_serialize( bswabe_prv_t* prv )
 	return b;
 }
 GByteArray*
-bswabe_prv_extract_partial_and_serialize( bswabe_prv_t* prv )
+bswabe_build_partial_updates_and_serialize( bswabe_prv_t* prv, bswabe_pub_t* pub )
 {
 	GByteArray* b;
 	unsigned char* buf;
-	
+	printf("Extracting partial private key\n");
 	b = g_byte_array_new();
-
+	
+	serialize_uint32(b, prv->v_dk);
+	
 	if((buf = (unsigned char*) malloc(128)) == NULL){
 		printf("Error in malloc() (1a)\n");
 		exit(1);
 	}
+	
+	element_to_bytes(buf, pub->h);
+	g_byte_array_append(b, buf, 128);
+	
 	element_to_bytes(buf, prv->d);
 	g_byte_array_append(b, buf, 128);
+	
 	free(buf);
-	serialize_uint32(b, prv->v_dk);
 	
 	return b;
 }

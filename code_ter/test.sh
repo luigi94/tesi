@@ -33,16 +33,21 @@ cpabe-keygen -o kevin_priv_key pub_key master_key \
 cpabe-enc pub_key document.txt '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
 
 cpabe-updatemk pub_key master_key upd_key
-cpabe-updatepk pub_key upd_key
+
+cpabe-update-partial-updates kevin_priv_key_partial upd_key pub_key
 
 cpabe-updatedk kevin_priv_key upd_key pub_key
+
+<< 'MULTILINE-COMMENT'	
+
+cpabe-update-pub-and-prv-partial kevin_priv_key_partial pub_key kevin_priv_key
 
 cpabe-updatecp document.txt.cpabe upd_key pub_key
 
 cpabe-dec pub_key kevin_priv_key document.txt.cpabe
 
-chmod 777 -R .
-<< 'MULTILINE-COMMENT'	
+
 MULTILINE-COMMENT
+chmod 777 -R .
 echo "END"
 
