@@ -138,12 +138,12 @@ void bswabe_update_cp(bswabe_pub_t* pub, char* prv_file, char* upd_file);
 /*
 	Update the Partial Updates
 */
-void bswabe_update_partial_updates(bswabe_pub_t* pub, char* partial_prv_file, char* upd_file);
+void bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_file);
 
 /*
 	Build the new prv_key from the old prv_key and the partial prv_key
 */
-void bswabe_update_pub_and_prv_keys_partial(char* partial_prv_file, char* pub_file, char* prv_file);
+void bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_file, char* prv_file);
 
 /*
   Exactly what it seems.
@@ -153,9 +153,9 @@ GByteArray* bswabe_msk_serialize( bswabe_msk_t* msk );
 GByteArray* bswabe_prv_serialize( bswabe_prv_t* prv );
 GByteArray* bswabe_cph_serialize( bswabe_cph_t* cph );
 
-GByteArray* bswabe_build_partial_updates_and_serialize( bswabe_prv_t* prv, bswabe_pub_t* pub );
-
+GByteArray* bswabe_build_partial_updates_and_serialize(bswabe_msk_t* msk, bswabe_prv_t* prv, bswabe_pub_t* pub );
 GByteArray* bswabe_upd_serialize( bswabe_upd_t* upd );
+
 void serialize_element( GByteArray* b, element_t e );
 void unserialize_element( GByteArray* b, int* offset, element_t e );
 char* unserialize_string( GByteArray* b, int* offset );

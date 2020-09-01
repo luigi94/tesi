@@ -50,9 +50,9 @@ char* usage =
 
 char*  pub_file = 0;
 char*  msk_file = 0;
-char* partial_key_file = 0;
 char** attrs    = 0;
 
+char* partial_updates_file = "partial_updates";
 char*  out_file = "priv_key";
 
 gint
@@ -93,7 +93,7 @@ parse_args( int argc, char** argv )
 			if( ++i >= argc )
 				die(usage);
 			else
-				partial_key_file = argv[i];
+				partial_updates_file = argv[i];
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
 		{
@@ -117,12 +117,7 @@ parse_args( int argc, char** argv )
 
 	alist = g_slist_sort(alist, comp_string);
 	n = g_slist_length(alist);
-
-	if(!partial_key_file){
-		partial_key_file = strdup(out_file);
-		strcat(partial_key_file, "_partial");
 	
-	}
 	attrs = malloc((n + 1) * sizeof(char*));
 
 	i = 0;
@@ -144,7 +139,7 @@ main( int argc, char** argv )
 	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	prv = bswabe_keygen(pub, msk, attrs);
 	spit_file(out_file, bswabe_prv_serialize(prv), 1);
-	spit_file(partial_key_file, bswabe_build_partial_updates_and_serialize(prv, pub), 1);
+	spit_file(partial_updates_file, bswabe_build_partial_updates_and_serialize(msk, prv, pub), 1);
 
 	return 0;
 }

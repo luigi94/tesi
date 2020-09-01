@@ -23,7 +23,7 @@ char* usage =
 "                          (only for debugging)\n\n"
 "";
 
-char*  partial_prv_file = 0;
+char*  partial_updates = 0;
 char*  prv_file = 0;
 char*  pub_file = 0;
 
@@ -47,9 +47,9 @@ parse_args( int argc, char** argv )
 		{
 			pbc_random_set_deterministic(0);
 		}
-		else if( !partial_prv_file )
+		else if( !partial_updates )
 		{
-			partial_prv_file = argv[i];
+			partial_updates = argv[i];
 		}
 		else if( !pub_file )
 		{
@@ -63,7 +63,7 @@ parse_args( int argc, char** argv )
 		{
 			die(usage);
 		}
-	if( !prv_file || !partial_prv_file )
+	if( !prv_file || !partial_updates )
 		die(usage);
 }
 
@@ -73,7 +73,7 @@ main( int argc, char** argv )
 	
 	parse_args(argc, argv);
 	
-	bswabe_update_pub_and_prv_keys_partial(partial_prv_file, pub_file, prv_file);
+	bswabe_update_pub_and_prv_keys_partial(partial_updates, pub_file, prv_file);
 	
 	return 0;
 }

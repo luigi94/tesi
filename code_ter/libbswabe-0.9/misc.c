@@ -201,14 +201,14 @@ bswabe_prv_serialize( bswabe_prv_t* prv )
 	return b;
 }
 GByteArray*
-bswabe_build_partial_updates_and_serialize( bswabe_prv_t* prv, bswabe_pub_t* pub )
+bswabe_build_partial_updates_and_serialize(bswabe_msk_t* msk, bswabe_prv_t* prv, bswabe_pub_t* pub )
 {
 	GByteArray* b;
 	unsigned char* buf;
 	printf("Extracting partial private key\n");
 	b = g_byte_array_new();
 	
-	serialize_uint32(b, prv->v_dk);
+	serialize_uint32(b, msk->v_mk);
 	
 	if((buf = (unsigned char*) malloc(128)) == NULL){
 		printf("Error in malloc() (1a)\n");
@@ -216,6 +216,7 @@ bswabe_build_partial_updates_and_serialize( bswabe_prv_t* prv, bswabe_pub_t* pub
 	}
 	
 	element_to_bytes(buf, pub->h);
+	element_printf("--- pub->h: %B\n", pub->h);
 	g_byte_array_append(b, buf, 128);
 	
 	element_to_bytes(buf, prv->d);
