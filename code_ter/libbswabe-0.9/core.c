@@ -67,52 +67,62 @@ element_from_string( element_t h, char* s )
 }
 
 void
-bswabe_setup( bswabe_pub_t** pub, bswabe_msk_t** msk )
+bswabe_setup( char* pub_file, char* msk_file )
 {
+	bswabe_msk_t* msk;
+	bswabe_pub_t* pub;
 	element_t alpha;
 
 	/* initialize */
  
-	*pub = malloc(sizeof(bswabe_pub_t));
-	*msk = malloc(sizeof(bswabe_msk_t));
+	pub = malloc(sizeof(bswabe_pub_t));
+	msk = malloc(sizeof(bswabe_msk_t));
 
-	(*pub)->pairing_desc = strdup(TYPE_A_PARAMS);
-	pairing_init_set_buf((*pub)->p, (*pub)->pairing_desc, strlen((*pub)->pairing_desc));
+	pub->pairing_desc = strdup(TYPE_A_PARAMS);
+	pairing_init_set_buf(pub->p, pub->pairing_desc, strlen(pub->pairing_desc));
 
-	element_init_G1((*pub)->g,           (*pub)->p);
-	element_init_G1((*pub)->h,           (*pub)->p);
-	element_init_G2((*pub)->gp,          (*pub)->p);
-	element_init_GT((*pub)->g_hat_alpha, (*pub)->p);
-	element_init_Zr(alpha,               (*pub)->p);
-	element_init_Zr((*msk)->beta,        (*pub)->p);
-	element_init_G2((*msk)->g_alpha,     (*pub)->p);
+	element_init_G1(pub->g,           pub->p);
+	element_init_G1(pub->h,           pub->p);
+	element_init_G2(pub->gp,          pub->p);
+	element_init_GT(pub->g_hat_alpha, pub->p);
+	element_init_Zr(alpha,               pub->p);
+	element_init_Zr(msk->beta,        pub->p);
+	element_init_G2(msk->g_alpha,     pub->p);
 
 	/* compute */
 
  	element_random(alpha);
- 	element_random((*msk)->beta);
-	element_random((*pub)->g);
-	element_random((*pub)->gp);
+ 	element_random(msk->beta);
+	element_random(pub->g);
+	element_random(pub->gp);
 
-	element_pow_zn((*msk)->g_alpha, (*pub)->gp, alpha);
-	element_pow_zn((*pub)->h, (*pub)->g, (*msk)->beta);
-  pairing_apply((*pub)->g_hat_alpha, (*pub)->g, (*msk)->g_alpha, (*pub)->p);
+	element_pow_zn(msk->g_alpha, pub->gp, alpha);
+	element_pow_zn(pub->h, pub->g, msk->beta);
+  pairing_apply(pub->g_hat_alpha, pub->g, msk->g_alpha, pub->p);
   
   /* version */
-  (*pub)->v_ek = 0;
-  (*msk)->v_mk = 0;
+  pub->v_ek = 0;
+  msk->v_mk = 0;
+  
+  element_clear(alpha);
+  
+	spit_file(pub_file, bswabe_pub_serialize(pub), 1);
+	spit_file(msk_file, bswabe_msk_serialize(msk), 1);
 }
 
-bswabe_prv_t* bswabe_keygen( bswabe_pub_t* pub,
-														 bswabe_msk_t* msk,
-														 char** attributes )
+void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partial_updates_file, char** attributes )
 {
+	bswabe_pub_t* pub;
+	bswabe_msk_t* msk;
 	bswabe_prv_t* prv;
 	element_t g_r;
 	element_t r;
 	element_t beta_inv;
 
 	/* initialize */
+	
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 
 	prv = malloc(sizeof(bswabe_prv_t));
 
@@ -124,7 +134,6 @@ bswabe_prv_t* bswabe_keygen( bswabe_pub_t* pub,
 	prv->comps = g_array_new(0, 1, sizeof(bswabe_prv_comp_t));
 
 	/* compute */
-
  	element_random(r);
 	element_pow_zn(g_r, pub->gp, r);
 
@@ -162,7 +171,12 @@ bswabe_prv_t* bswabe_keygen( bswabe_pub_t* pub,
 	/* version */
 	prv->v_dk = msk->v_mk;
 	
-	return prv;
+	element_clear(g_r);
+	element_clear(r);
+	element_clear(beta_inv);
+	
+	spit_file(out_file, bswabe_prv_serialize(prv), 1);
+	spit_file(partial_updates_file, bswabe_build_partial_updates_and_serialize(msk, prv, pub), 1);
 }
 
 bswabe_policy_t*
@@ -349,15 +363,27 @@ fill_policy( bswabe_policy_t* p, bswabe_pub_t* pub, element_t e )
 	element_clear(h);
 }
 
-bswabe_cph_t*
-bswabe_enc( bswabe_pub_t* pub, element_t m, char* policy )
+void
+bswabe_enc( char* pub_file, char* in_file, char* out_file, char* policy, int keep )
 {
 	bswabe_cph_t* cph;
  	element_t s;
+ 	
+	bswabe_pub_t* pub;
+	int file_len;
+	GByteArray* plt;
+	GByteArray* cph_buf;
+	GByteArray* aes_buf;
+	element_t m;
+
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 
 	/* initialize */
 
-	cph = malloc(sizeof(bswabe_cph_t));
+	if((cph = malloc(sizeof(bswabe_cph_t))) == NULL){
+		die("%s", bswabe_error());
+		exit(0);
+	}
 
 	element_init_Zr(s, pub->p);
 	element_init_GT(m, pub->p);
@@ -378,8 +404,27 @@ bswabe_enc( bswabe_pub_t* pub, element_t m, char* policy )
 	
 	/* version */
 	cph->v_cp = pub->v_ek;
+	
+	free(policy);
 
-	return cph;
+	cph_buf = bswabe_cph_serialize(cph);
+	bswabe_cph_free(cph);
+
+	plt = suck_file(in_file);
+	file_len = plt->len;
+	aes_buf = aes_128_cbc_encrypt(plt, m);
+	g_byte_array_free(plt, 1);
+	element_clear(m);
+	element_clear(s);
+
+	write_cpabe_file(out_file, cph_buf, file_len, aes_buf);
+
+	g_byte_array_free(cph_buf, 1);
+	g_byte_array_free(aes_buf, 1);
+
+	if( !keep )
+		unlink(in_file);
+
 }
 
 void
@@ -751,12 +796,26 @@ dec_flatten( element_t r, bswabe_policy_t* p, bswabe_prv_t* prv, bswabe_pub_t* p
 }
 
 int
-bswabe_dec( bswabe_pub_t* pub, bswabe_prv_t* prv, bswabe_cph_t* cph, element_t m )
+bswabe_dec( char* pub_file, char* prv_file, char* in_file, char* out_file, int keep)
 {
+	bswabe_pub_t* pub;
+	bswabe_prv_t* prv;
+	int file_len;
+	GByteArray* aes_buf;
+	GByteArray* plt;
+	GByteArray* cph_buf;
+	bswabe_cph_t* cph;
 	element_t t;
+	element_t m;
 
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+	
 	element_init_GT(m, pub->p);
 	element_init_GT(t, pub->p);
+	
+	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
+	read_cpabe_file(in_file, &cph_buf, &file_len, &aes_buf);
+	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 
 	check_sat(cph->p, prv);
 	if( !cph->p->satisfiable )
@@ -782,6 +841,20 @@ bswabe_dec( bswabe_pub_t* pub, bswabe_prv_t* prv, bswabe_cph_t* cph, element_t m
 	pairing_apply(t, cph->c, prv->d, pub->p); /* num_pairings++; */
 	element_invert(t, t);
 	element_mul(m, m, t); /* num_muls++; */
+	
+	bswabe_cph_free(cph);
+
+	plt = aes_128_cbc_decrypt(aes_buf, m);
+	g_byte_array_set_size(plt, file_len);
+	g_byte_array_free(aes_buf, 1);
+
+	spit_file(out_file, plt, 1);
+
+	if( !keep )
+		unlink(in_file);
+
+	element_clear(t);
+	element_clear(m);
 
 	return 1;
 }

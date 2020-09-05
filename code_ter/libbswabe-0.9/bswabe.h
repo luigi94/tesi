@@ -41,16 +41,14 @@ typedef struct bswabe_cph_s bswabe_cph_t;
   later freed by calling bswabe_pub_free(*pub) and
   bswabe_msk_free(*msk).
 */
-void bswabe_setup( bswabe_pub_t** pub, bswabe_msk_t** msk);
+void bswabe_setup( char* pub_file, char* msk_file );
 
 /*
   Generate a private key with the given set of attributes. The final
   argument should be a null terminated array of pointers to strings,
   one for each attribute.
 */
-bswabe_prv_t* bswabe_keygen( bswabe_pub_t* pub,
-                             bswabe_msk_t* msk,
-                             char** attributes );
+void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partial_updates_file, char** attributes );
 
 /*
   Pick a random group element and encrypt it under the specified
@@ -77,7 +75,7 @@ bswabe_prv_t* bswabe_keygen( bswabe_pub_t* pub,
   Returns null if an error occured, in which case a description can be
   retrieved by calling bswabe_error().
 */
-bswabe_cph_t* bswabe_enc( bswabe_pub_t* pub, element_t m, char* policy );
+void bswabe_enc( char* pub_file, char* in_file, char* out_file, char* policy, int keep );
 
 /*
   Decrypt the specified ciphertext using the given private key,
@@ -87,8 +85,7 @@ bswabe_cph_t* bswabe_enc( bswabe_pub_t* pub, element_t m, char* policy );
   Returns true if decryption succeeded, false if this key does not
   satisfy the policy of the ciphertext (in which case m is unaltered).
 */
-int bswabe_dec( bswabe_pub_t* pub, bswabe_prv_t* prv,
-                bswabe_cph_t* cph, element_t m );
+int bswabe_dec( char* pub_file, char* prv_file, char* in_file, char* out_file, int keep);
 
 /*
 	Print the Master Key

@@ -129,17 +129,9 @@ parse_args( int argc, char** argv )
 int
 main( int argc, char** argv )
 {
-	bswabe_pub_t* pub;
-	bswabe_msk_t* msk;
-	bswabe_prv_t* prv;
 
 	parse_args(argc, argv);
 
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
-	prv = bswabe_keygen(pub, msk, attrs);
-	spit_file(out_file, bswabe_prv_serialize(prv), 1);
-	spit_file(partial_updates_file, bswabe_build_partial_updates_and_serialize(msk, prv, pub), 1);
-
-	return 0;
+	bswabe_keygen(pub_file, msk_file, out_file, partial_updates_file, attrs);
+	
 }

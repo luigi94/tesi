@@ -35,6 +35,7 @@ PATH: /sbin
 PATH: /bin
 PATH: /usr/games
 PATH: /usr/local/games
+PATH: /snap/bin
 
 
 ## ----------- ##
@@ -352,7 +353,7 @@ configure:3876: $? = 0
 configure:3876: result: yes
 configure:3882: checking for _doprnt
 configure:3882: gcc -o conftest -O3 -Wall  -O3 -Wall conftest.c  >&5
-/usr/bin/ld: /tmp/cc7Iefsm.o: in function `main':
+/usr/bin/ld: /tmp/ccOw0nUP.o: in function `main':
 conftest.c:(.text.startup+0xb): undefined reference to `_doprnt'
 collect2: error: ld returned 1 exit status
 configure:3882: $? = 1

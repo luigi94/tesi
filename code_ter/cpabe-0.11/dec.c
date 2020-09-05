@@ -133,34 +133,11 @@ parse_args( int argc, char** argv )
 int
 main( int argc, char** argv )
 {
-	bswabe_pub_t* pub;
-	bswabe_prv_t* prv;
-	int file_len;
-	GByteArray* aes_buf;
-	GByteArray* plt;
-	GByteArray* cph_buf;
-	bswabe_cph_t* cph;
-	element_t m;
 
 	parse_args(argc, argv);
-
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
-	read_cpabe_file(in_file, &cph_buf, &file_len, &aes_buf);
-	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 	
-	if( !bswabe_dec(pub, prv, cph, m) )
+	if( !bswabe_dec(pub_file, prv_file, in_file, out_file, keep) )
 		die("%s", bswabe_error());
-	bswabe_cph_free(cph);
-
-	plt = aes_128_cbc_decrypt(aes_buf, m);
-	g_byte_array_set_size(plt, file_len);
-	g_byte_array_free(aes_buf, 1);
-
-	spit_file(out_file, plt, 1);
-
-	if( !keep )
-		unlink(in_file);
 
 	/* report ops if necessary */
 /* 	if( report_ops ) */

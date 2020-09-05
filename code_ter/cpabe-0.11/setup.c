@@ -72,14 +72,10 @@ parse_args( int argc, char** argv )
 int
 main( int argc, char** argv )
 {
-	bswabe_pub_t* pub;
-	bswabe_msk_t* msk;
 
 	parse_args(argc, argv);
 
-	bswabe_setup(&pub, &msk);
-	spit_file(pub_file, bswabe_pub_serialize(pub), 1);
-	spit_file(msk_file, bswabe_msk_serialize(msk), 1);
+	bswabe_setup(pub_file, msk_file);
 
 	return 0;
 }
