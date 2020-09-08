@@ -91,9 +91,13 @@ parse_args( int argc, char** argv )
 int
 main( int argc, char** argv )
 {
+	bswabe_pub_t* pub;
+	
 	parse_args(argc, argv);
+	
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 
-  bswabe_enc(pub_file, in_file, out_file, policy, keep);
+  bswabe_enc(pub, in_file, out_file, policy, keep);
 
 	return 0;
 }

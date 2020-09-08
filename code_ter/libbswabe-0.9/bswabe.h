@@ -48,7 +48,7 @@ void bswabe_setup( char* pub_file, char* msk_file );
   argument should be a null terminated array of pointers to strings,
   one for each attribute.
 */
-void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partial_updates_file, char** attributes );
+void bswabe_keygen( bswabe_pub_t* pub, char* msk_file, char* out_file, char* partial_updates_file, char** attributes );
 
 /*
   Pick a random group element and encrypt it under the specified
@@ -75,7 +75,7 @@ void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partia
   Returns null if an error occured, in which case a description can be
   retrieved by calling bswabe_error().
 */
-void bswabe_enc( char* pub_file, char* in_file, char* out_file, char* policy, int keep );
+void bswabe_enc( bswabe_pub_t* pub, char* in_file, char* out_file, char* policy, int keep );
 
 /*
   Decrypt the specified ciphertext using the given private key,
@@ -85,7 +85,7 @@ void bswabe_enc( char* pub_file, char* in_file, char* out_file, char* policy, in
   Returns true if decryption succeeded, false if this key does not
   satisfy the policy of the ciphertext (in which case m is unaltered).
 */
-int bswabe_dec( char* pub_file, char* prv_file, char* in_file, char* out_file, int keep);
+int bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, int keep);
 
 /*
 	Print the Master Key
@@ -130,7 +130,7 @@ void bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file);
 /*
 	Udate the cipher-text
 */
-void bswabe_update_cp(bswabe_pub_t* pub, char* prv_file, char* upd_file);
+void bswabe_update_cp(char* pub_file, char* prv_file, char* upd_file);
 
 /*
 	Update the Partial Updates
@@ -140,7 +140,7 @@ void bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* 
 /*
 	Build the new prv_key from the old prv_key and the partial prv_key
 */
-void bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_file, char* prv_file);
+void bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub, char* prv_file);
 
 /*
   Exactly what it seems.
@@ -156,6 +156,11 @@ GByteArray* bswabe_upd_serialize( bswabe_upd_t* upd );
 void serialize_element( GByteArray* b, element_t e );
 void unserialize_element( GByteArray* b, int* offset, element_t e );
 char* unserialize_string( GByteArray* b, int* offset );
+
+uint32_t get_cph_version(char* cph_file);
+uint32_t get_prv_version(char* prv_file);
+uint32_t get_msk_version(char* msk_file);
+uint32_t get_partial_updates_version(char* partial_updates_file);
 
 /*
   Also exactly what it seems. If free is true, the GByteArray passed

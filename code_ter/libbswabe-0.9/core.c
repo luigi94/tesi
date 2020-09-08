@@ -66,6 +66,101 @@ element_from_string( element_t h, char* s )
 	free(r);
 }
 
+uint32_t get_cph_version(char* cph_file){
+	uint32_t version;
+	FILE* f;
+	int i;
+	unsigned char* buf;
+	
+	if((f = fopen(cph_file, "r")) == NULL) {
+		printf("Error in opening file (6**)\n");
+		exit(1);
+	}
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		printf("Error in malloc() (20**)\n");
+		exit(1);
+	}
+	fseek(f, -4L, SEEK_END);
+	fread(buf, 1, 4L, f);
+	version = 0;
+	for(i = 3; i >= 0; i-- )
+		version |= (buf[(3 - i)])<<(i*8);
+	free(buf);
+	fclose(f);
+	return version;
+}
+
+uint32_t get_prv_version(char* prv_file){
+	uint32_t version;
+	FILE* f;
+	int i;
+	unsigned char* buf;
+	
+	if((f = fopen(prv_file, "r")) == NULL) {
+		printf("Error in opening file (7**)\n");
+		exit(1);
+	}
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		printf("Error in malloc() (20**)\n");
+		exit(1);
+	}
+	fseek(f, -4L, SEEK_END);
+	fread(buf, 1, 4L, f);
+	version = 0;
+	for(i = 3; i >= 0; i-- )
+		version |= (buf[(3 - i)])<<(i*8);
+	free(buf);
+	fclose(f);
+	return version;
+}
+
+uint32_t get_msk_version(char* msk_file){
+	uint32_t version;
+	FILE* f;
+	int i;
+	unsigned char* buf;
+	
+	if((f = fopen(msk_file, "r")) == NULL) {
+		printf("Error in opening file (6**)\n");
+		exit(1);
+	}
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		printf("Error in malloc() (20**)\n");
+		exit(1);
+	}
+	fseek(f, -4L, SEEK_END);
+	fread(buf, 1, 4L, f);
+	version = 0;
+	for(i = 3; i >= 0; i-- )
+		version |= (buf[(3 - i)])<<(i*8);
+	free(buf);
+	fclose(f);
+	return version;
+}
+
+uint32_t get_partial_updates_version(char* partial_updates_file){
+	uint32_t version;
+	FILE* f;
+	int i;
+	unsigned char* buf;
+	
+	if((f = fopen(partial_updates_file, "r")) == NULL) {
+		printf("Error in opening file (6**)\n");
+		exit(1);
+	}
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		printf("Error in malloc() (20**)\n");
+		exit(1);
+	}
+	fread(buf, 1, 4L, f);
+	version = 0;
+	for(i = 3; i >= 0; i-- )
+		version |= (buf[(3 - i)])<<(i*8);
+	free(buf);
+	fclose(f);
+	return version;
+}
+
 void
 bswabe_setup( char* pub_file, char* msk_file )
 {
@@ -110,9 +205,8 @@ bswabe_setup( char* pub_file, char* msk_file )
 	spit_file(msk_file, bswabe_msk_serialize(msk), 1);
 }
 
-void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partial_updates_file, char** attributes )
+void bswabe_keygen( bswabe_pub_t* pub, char* msk_file, char* out_file, char* partial_updates_file, char** attributes )
 {
-	bswabe_pub_t* pub;
 	bswabe_msk_t* msk;
 	bswabe_prv_t* prv;
 	element_t g_r;
@@ -121,7 +215,6 @@ void bswabe_keygen( char* pub_file, char* msk_file, char* out_file, char* partia
 
 	/* initialize */
 	
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 
 	prv = malloc(sizeof(bswabe_prv_t));
@@ -364,19 +457,16 @@ fill_policy( bswabe_policy_t* p, bswabe_pub_t* pub, element_t e )
 }
 
 void
-bswabe_enc( char* pub_file, char* in_file, char* out_file, char* policy, int keep )
+bswabe_enc( bswabe_pub_t* pub, char* in_file, char* out_file, char* policy, int keep )
 {
 	bswabe_cph_t* cph;
  	element_t s;
  	
-	bswabe_pub_t* pub;
 	int file_len;
 	GByteArray* plt;
 	GByteArray* cph_buf;
 	GByteArray* aes_buf;
 	element_t m;
-
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 
 	/* initialize */
 
@@ -796,9 +886,8 @@ dec_flatten( element_t r, bswabe_policy_t* p, bswabe_prv_t* prv, bswabe_pub_t* p
 }
 
 int
-bswabe_dec( char* pub_file, char* prv_file, char* in_file, char* out_file, int keep)
+bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, int keep)
 {
-	bswabe_pub_t* pub;
 	bswabe_prv_t* prv;
 	int file_len;
 	GByteArray* aes_buf;
@@ -807,8 +896,6 @@ bswabe_dec( char* pub_file, char* prv_file, char* in_file, char* out_file, int k
 	bswabe_cph_t* cph;
 	element_t t;
 	element_t m;
-
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 	
 	element_init_GT(m, pub->p);
 	element_init_GT(t, pub->p);
@@ -1168,8 +1255,9 @@ bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
 }
 
 void
-bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
+bswabe_update_cp(char* pub_file, char* cph_file, char* upd_file)
 {
+	bswabe_pub_t* pub;
 	element_t exp;
 	element_t current_exp;
 	element_t base;
@@ -1239,6 +1327,10 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	free(buf);
 	
 	// Fetch all u_cp(s)
+	if((pub = bswabe_pub_unserialize(suck_file(pub_file), 1)) == NULL){
+		printf("Error in malloc() (11.A)\n");
+		exit(1);
+	}
 	element_init_Zr(exp, pub->p);
 	element_init_Zr(current_exp, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
@@ -1491,14 +1583,13 @@ void print_upd_t(bswabe_upd_t *head) {
 		printf("Node at version %d:\n", current_node->v_uk);
 		element_printf("u_cp (%d bytes): %B\n", sizeof(current_node->u_cp), current_node->u_cp);
 		element_printf("u_pk (%d bytes): %B\n", sizeof(current_node->u_pk), current_node->u_pk);
-		printf("v_uk (%lu bytes): %d\n", sizeof(current_node->v_uk), current_node->v_uk);
+		printf("v_uk: %u\n", current_node->v_uk);
 		current_node = current_node->next;
   }
-	printf("Size of bswabe_upd_t = %lu\n", sizeof(bswabe_upd_t*));
 }
 
 void print_pub_t(bswabe_pub_t* pub){
-	printf("Printing Public Key (version %d)\n", pub->v_ek);
+	printf("Printing Public Key (version %u)\n", pub->v_ek);
 	element_printf("pub->h: %B\n", pub->h);
 	element_printf("pub->g: %B\n", pub->g);
 	element_printf("pub->g_hat_alpha: %B\n", pub->g_hat_alpha);
@@ -1509,16 +1600,16 @@ void print_msk_t(bswabe_msk_t* msk){
 	printf("Printing Master Key\n");
 	element_printf("beta: %B\n", msk->beta);
 	element_printf("g_alpha: %B\n", msk->g_alpha);
-	printf("v_mk: %d\n\n", msk->v_mk);
+	printf("v_mk: %u\n\n", msk->v_mk);
 }
 void print_prv_t(bswabe_prv_t* prv){
 	printf("Printing Private Key (Decryption key)\n");
 	element_printf("d: %B\n", prv->d);
-	printf("Version %d\n\n", prv->v_dk);
+	printf("Version %u\n\n", prv->v_dk);
 }
 void print_cph_t(bswabe_cph_t* cph){
 	printf("Printing Ciphertext\n");
 	element_printf("c: %B\n", cph->c);
 	element_printf("cs: %B\n", cph->cs);
-	//element_printf("cph->p->q->coef: %B\n\n", cph->p->q->coef);
+	printf("Version %u\n\n", cph->v_cp);
 }

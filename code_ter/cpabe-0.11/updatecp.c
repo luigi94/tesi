@@ -72,13 +72,10 @@ parse_args( int argc, char** argv )
 int
 main( int argc, char** argv )
 {
-	bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
 	
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	
-	bswabe_update_cp(pub, cph_file, upd_file);
+	bswabe_update_cp(pub_file, cph_file, upd_file);
 	
 	return 0;
 }

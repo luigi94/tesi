@@ -134,9 +134,13 @@ int
 main( int argc, char** argv )
 {
 
+	bswabe_pub_t* pub;
+	
 	parse_args(argc, argv);
 	
-	if( !bswabe_dec(pub_file, prv_file, in_file, out_file, keep) )
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+	
+	if( !bswabe_dec(pub, prv_file, in_file, out_file, keep) )
 		die("%s", bswabe_error());
 
 	/* report ops if necessary */

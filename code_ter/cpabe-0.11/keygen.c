@@ -130,8 +130,12 @@ int
 main( int argc, char** argv )
 {
 
+	bswabe_pub_t* pub;
+	
 	parse_args(argc, argv);
+	
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 
-	bswabe_keygen(pub_file, msk_file, out_file, partial_updates_file, attrs);
+	bswabe_keygen(pub, msk_file, out_file, partial_updates_file, attrs);
 	
 }

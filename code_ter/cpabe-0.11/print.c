@@ -58,7 +58,7 @@ main( int argc, char** argv )
 			GByteArray* cph_buf;
 			pub = bswabe_pub_unserialize(suck_file(argv[3]), 1);
 			read_cpabe_file(argv[2], &cph_buf, &file_len, &aes_buf);
-			cph = bswabe_cph_unserialize(pub, suck_file(argv[2]), 1);
+			cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 			print_cph_t(cph);
 		}
 		else if( !strcmp(argv[1], "partial") )
