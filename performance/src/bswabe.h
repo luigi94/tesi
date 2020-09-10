@@ -140,7 +140,7 @@ void bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* 
 /*
 	Build the new prv_key from the old prv_key and the partial prv_key
 */
-void bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub, char* prv_file);
+void bswabe_update_pub_and_prv_keys_partial(unsigned char* partial_updates, char* pub, char* prv_file);
 
 /*
   Exactly what it seems.

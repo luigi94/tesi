@@ -1,7 +1,6 @@
 OBJS = ./src/common.o ./src/core.o ./src/misc.o ./src/policy_lang.o
 CC = gcc
 SRC = src
-EXEC = exec
 CFLAGS  = -O3 -Wall -Wextra\
 	-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include \
 	 \
@@ -17,18 +16,24 @@ LDFLAGS = -O3 -Wall -Wextra \
 	-lgmp \
 	-lnsl -lsocket
 
-TARGETS = $(EXEC)/client $(EXEC)/server
+TARGETS = Client/client Server/server
 
 $(SRC)/%.o: $(SRC)/%.c $(SRC)/*.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-$(EXEC)/client: $(OBJS) $(SRC)/client.o
+Client/client: $(OBJS) $(SRC)/client.o | Client
 	$(CC) -o $@ $^ $(LDFLAGS) 
 	
-$(EXEC)/server: $(OBJS) $(SRC)/server.o
+Server/server: $(OBJS) $(SRC)/server.o | Server
 	$(CC) -o $@ $^ $(LDFLAGS) -pthread
 	
 all: $(TARGETS)
 
 clean:
 	rm -f $(OBJS) $(TARGETS)
+
+Client:
+	mkdir -p $@
+    
+Server:
+	mkdir -p $@ 

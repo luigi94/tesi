@@ -1488,53 +1488,34 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 }
 
 void
-bswabe_update_pub_and_prv_keys_partial(char* partial_updates_file, char* pub_file, char* prv_file)
+bswabe_update_pub_and_prv_keys_partial(unsigned char* partial_updates, char* pub_file, char* prv_file)
 {
 	/* TODO update the error messages */
-	unsigned char* buf;
-	FILE* f_updates;
 	FILE* f_pub;
 	FILE* f_prv;
 	
-	if((f_updates = fopen(partial_updates_file, "r")) == NULL || (f_prv = fopen(prv_file, "r+")) == NULL || (f_pub = fopen(pub_file, "r+")) == NULL) {
+	if( (f_prv = fopen(prv_file, "r+")) == NULL || (f_pub = fopen(pub_file, "r+")) == NULL) {
 		fprintf(stderr, "Error in opening file (6). Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	
-	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (19)\n");
-		exit(1);
-	}
-	
-	fread(buf, 1, 4L, f_updates);
-	
 	// Update decryption key version
 	fseek(f_prv, -4L, SEEK_END);
-	fwrite(buf, 1, 4L, f_prv);
+	fwrite(partial_updates, 1, 4L, f_prv);
 	
 	//Update public key version
 	fseek(f_pub, -4L, SEEK_END);
-	fwrite(buf, 1, 4L, f_pub);
-	free(buf);
-	
-	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (20)\n");
-		exit(1);
-	}
+	fwrite(partial_updates, 1, 4L, f_pub);
 	
 	// Update h field in public key
-	fread(buf, 1, 128L, f_updates);
 	fseek(f_pub, 496L, SEEK_SET);
-	fwrite(buf, 1, 128L, f_pub);
+	fwrite(partial_updates + 4, 1, 128L, f_pub);
 	
 	// Update d field in private key
-	fread(buf, 1, 128L, f_updates);
 	fseek(f_prv, 4L, SEEK_SET);
-	fwrite(buf, 1, 128L, f_prv);
+	fwrite(partial_updates + 132, 1, 128L, f_prv);
 	
-	free(buf);
 	
-	fclose(f_updates);
 	fclose(f_prv);
 	fclose(f_pub);
 

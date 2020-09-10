@@ -25,22 +25,24 @@
 #define MAX_USER_LENGTH 64
 
 ssize_t nbytes;
+int socket_fd;	
 
-char* received_file = "received.pdf.cpbabe";
+char* received_file = "received.pdf.cpabe";
 char* cleartext_file = "received.pdf";
 char* partial_updates_received = "partial_updates_received";
 char* pub_file = "pub_key";
 char* prv_file = "kevin_priv_key";
 
-void receive_type(uint16_t *num, int fd){
+void receive_type(uint16_t *num, int socket_fd){
 	uint16_t ret;
 	char *data = (char*)&ret;
 	ssize_t left = (ssize_t) sizeof(ret);
 	do {
-		nbytes = recv(fd, data, left, 0);
+		nbytes = recv(socket_fd, data, left, 0);
 		if (nbytes <= 0 && errno != EINTR){
+			fprintf(stderr, "Error on receiving type %d. Error: %s\n", socket_fd, strerror(errno));
+			close(socket_fd);
 			exit(1);
-			fprintf(stderr, "Error on receiving type %d. Error: %s\n", fd, strerror(errno));
 		}
 		else {
 		  data += nbytes;
@@ -53,10 +55,12 @@ void send_username_size(int socket_fd, size_t* username_size){
 	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(size_t)){
 		fprintf(stderr, "Username size not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 }
@@ -64,22 +68,26 @@ void send_username(int socket_fd, char* user, size_t username_size){
 	nbytes = send(socket_fd, (void*)user, username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < username_size){
 		fprintf(stderr, "Username not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 }
-void recv_key_updates(int socket_fd, char* updates_buffer){
+void recv_key_updates(int socket_fd, unsigned char* updates_buffer){
 	nbytes = recv(socket_fd, updates_buffer, UPDATES_LEN, 0);
 	fprintf(stdout, "Received %ld bytes for the updates\n", nbytes);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving key updates from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	if((unsigned long)nbytes < UPDATES_LEN){
 		fprintf(stderr, "Key updates not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 }
@@ -91,10 +99,12 @@ void recv_file_size(int socket_fd, long* file_size){
 		
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	if(nbytes < 8){
 		fprintf(stderr, "File size not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 
@@ -108,10 +118,12 @@ void recv_file(int socket_fd, char* received_file, long file_size){
 	
 	if((file_buffer = (char*)malloc((size_t)file_size)) == NULL){
 		fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	if((f = fopen(received_file, "w")) == NULL){
 		fprintf(stdout, "Error in opening file to be received. Error: %s\n", strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	remaining_data = file_size;
@@ -121,10 +133,12 @@ void recv_file(int socket_fd, char* received_file, long file_size){
 		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
+			close(socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
 			fprintf(stderr, "File not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
+			close(socket_fd);
 			exit(1);
 		}
 		fwrite(file_buffer, 1, count, f);
@@ -133,17 +147,19 @@ void recv_file(int socket_fd, char* received_file, long file_size){
 	}
   fclose(f);
 }
+
+void signal_handler();
+
 int main(int argc, char *argv[]) {
 	char server_name[SERVER_NAME_LEN_MAX + 1] = { 0 };
-	int server_port, socket_fd;
+	int server_port;
 	struct hostent *server_host;
 	struct sockaddr_in server_address;
 	size_t username_size;
 	char* user;
 	
-	char* updates_buffer;
+	unsigned char* updates_buffer;
 	long file_size;
-	FILE* f_updates;
 	uint16_t type;
 	bswabe_pub_t* pub;
 
@@ -161,14 +177,18 @@ int main(int argc, char *argv[]) {
 		printf("Enter Port: ");
 		scanf("%d", &server_port);
 	}
+	
+	signal(SIGINT, signal_handler);
+	
 	if((user = (char*)malloc(MAX_USER_LENGTH)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
+		close(socket_fd);
 		exit(1);
 	}
 	strncpy(user, argv[3], MAX_USER_LENGTH);
 	user[MAX_USER_LENGTH - 1] = '\0';
 	username_size = strlen(user);
-	fprintf(stderr, "ID is %s (%lu bytes)\n", user, username_size);
+	fprintf(stdout, "ID is %s (%lu bytes)\n", user, username_size);
 	
 	/* Get server host from server name. */
 	server_host = gethostbyname(server_name);
@@ -182,6 +202,7 @@ int main(int argc, char *argv[]) {
 	/* Create TCP socket. */
 	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
+		close(socket_fd);
 		exit(1);
 	}
 
@@ -201,21 +222,19 @@ int main(int argc, char *argv[]) {
 	
 	switch(type){
 		case 0:
-			if((updates_buffer = (char*)malloc(UPDATES_LEN)) == NULL){
+			
+			if((updates_buffer = (unsigned char*)malloc(UPDATES_LEN)) == NULL){
 				fprintf(stderr, "Error in allocating memory for the updates to be received. Error: %s\n", strerror(errno));
+				close(socket_fd);
 				exit(1);
 			}
 			
 			recv_key_updates(socket_fd, updates_buffer);
 			
-			if((f_updates = fopen(partial_updates_received, "w")) == NULL){
-				fprintf(stderr, "Error in creating file for updates. Error: %s\n", strerror(errno));
-				exit(1);
-			}
-			fwrite(updates_buffer, 1, UPDATES_LEN, f_updates);
+			bswabe_update_pub_and_prv_keys_partial(updates_buffer, pub_file, prv_file);
+			
 			free(updates_buffer);
-			fclose(f_updates);
-			bswabe_update_pub_and_prv_keys_partial(partial_updates_received, pub_file, prv_file);
+			
 		case 1:
 		
 			recv_file_size(socket_fd, &file_size);
@@ -231,15 +250,23 @@ int main(int argc, char *argv[]) {
 			
 			if(!bswabe_dec(pub, prv_file, received_file, cleartext_file, 1))
 				die("%s", bswabe_error());
+				
+			free(pub);
 			
 			break;
 				
 			default:
-				printf("CLIENT - Unknown response type\n");
+				fprintf(stderr, "Unknown response type\n");
+				close(socket_fd);
 				exit(1);
 		}
 	
 	close(socket_fd);
-	//free(file_buffer);
+	
 	return 0;
+}
+void signal_handler() { // Explicit clean-up
+	fprintf(stdout, "Signal handler invoked\n");
+	close(socket_fd);
+  exit(0);
 }

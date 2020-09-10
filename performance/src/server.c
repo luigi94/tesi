@@ -29,6 +29,8 @@
 #define UPDATES_LEN 260
 
 ssize_t nbytes;
+int socket_fd;
+
 char* partial_updates_file = "partial_updates";
 char* ciphertext_file = "to_send.pdf.cpabe";
 char* msk_file = "master_key";
@@ -44,16 +46,19 @@ typedef struct pthread_arg_t {
 void *pthread_routine(void *arg);
 
 /* Signal handler to handle SIGTERM and SIGINT signals. */
-void signal_handler(int signal_number);
+void signal_handler();
 
-void send_type(uint16_t num, int fd) {
+void send_type(uint16_t num, int new_socket_fd) {
 	uint16_t conv = htons(num);
 	char *data = (char*)&conv;
 	ssize_t left = (ssize_t) sizeof(conv);
 	do {
-		nbytes = send(fd, data, left, 0);
-		if (nbytes < 0 && errno != EINTR)
+		nbytes = send(new_socket_fd, data, left, 0);
+		if (nbytes < 0 && errno != EINTR){
+			fprintf(stderr, "Error in sending response type from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+			close(new_socket_fd);
 			exit(1);
+		}
 		else {
 		  data += nbytes;
 		  left -= nbytes;
@@ -65,10 +70,12 @@ void receive_username_size(int new_socket_fd, size_t* username_size){
 	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(size_t)){
 		fprintf(stderr, "Username size not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 }
@@ -77,10 +84,12 @@ void receive_username(int new_socket_fd, char* user, size_t username_size){
 	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((size_t) nbytes < username_size){
 		fprintf(stderr, "Username not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 }
@@ -91,16 +100,19 @@ void send_updates(int new_socket_fd, char* partial_updates_file){
 	/* Open updates file */
   if ((fd_updates = open(partial_updates_file, O_RDONLY)) == -1) {
 	  fprintf(stderr, "Error in opening updates file %s\n", strerror(errno));
+	  close(new_socket_fd);
 	  exit(1);
   }
   nbytes = sendfile(new_socket_fd, fd_updates, 0, (size_t) UPDATES_LEN);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending key updates on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	
 	if((size_t) nbytes < UPDATES_LEN){
 		fprintf(stderr, "Key updates not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 }
@@ -115,11 +127,13 @@ void send_file(int new_socket_fd, char* to_send){
   /* Open file */
   if ((fd = open(to_send, O_RDONLY)) == -1) {
 	  fprintf(stderr, "Error in opening firmware updates %s\n", strerror(errno));
+	  close(new_socket_fd);
 	  exit(1);
   }
   /* Get file statistics */
   if (fstat(fd, &file_stat) < 0) {
 	  fprintf(stderr, "Error in getting statistics of firmware updates --> %s", strerror(errno));
+	  close(new_socket_fd);
 	  exit(1);
   }
 	fprintf(stdout, "File Size: %ld bytes\n", file_stat.st_size);
@@ -129,10 +143,12 @@ void send_file(int new_socket_fd, char* to_send){
 	nbytes = send(new_socket_fd, (void*)file_size_buf, (size_t) sizeof(file_size_buf), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending firmware updates size on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(file_size_buf)){
 		fprintf(stderr, "Firmware updates size not entirely sent on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	fprintf(stdout, "Sent %ld bytes for the firmware updates size\n", nbytes);
@@ -144,17 +160,19 @@ void send_file(int new_socket_fd, char* to_send){
 		nbytes = sendfile(new_socket_fd, fd, &offset, count);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in sending firmware updates on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+			close(new_socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
 			fprintf(stderr, "Firmware updates size not entirely sent on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+			close(new_socket_fd);
 			exit(1);
 		}
 		remaining_data -= nbytes;
 	}
 }
 int main(int argc, char *argv[]) {
-    int port, socket_fd, new_socket_fd;
+    int port, new_socket_fd;
     struct sockaddr_in address;
     pthread_attr_t pthread_attr;
     pthread_arg_t *pthread_arg;
@@ -262,6 +280,7 @@ void *pthread_routine(void *arg) {
   receive_username_size(new_socket_fd, &username_size);
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	
@@ -273,6 +292,7 @@ void *pthread_routine(void *arg) {
 	
 	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
 		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
+		close(new_socket_fd);
 		exit(1);
 	}
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
@@ -287,6 +307,7 @@ void *pthread_routine(void *arg) {
 	}
 	else{
 		fprintf(stderr, "Error - Partial updates version can't be greater that master key version\n");
+		close(new_socket_fd);
 		exit(1);
 	}
 	fprintf(stdout, "Type: %hu\n", type);
@@ -296,6 +317,7 @@ void *pthread_routine(void *arg) {
 	}
 	else if (cph_version > master_key_version){
 		fprintf(stderr, "Error - Ciphertext version can't be greater that master key version\n");
+		close(new_socket_fd);
 		exit(1);
 	}
 	free(pub);
@@ -311,6 +333,7 @@ void *pthread_routine(void *arg) {
 			
 		default:
 			fprintf(stderr, "Unknown response type\n");
+			close(new_socket_fd);
 			exit(1);
 	}
   close(new_socket_fd);
@@ -319,6 +342,8 @@ void *pthread_routine(void *arg) {
   return NULL;
 }
 
-void signal_handler(int signal_number) { // Explicit clean-up
-    exit(0);
+void signal_handler() { // Explicit clean-up
+	fprintf(stdout, " <-- Signal handler invoked\n");
+	close(socket_fd);
+  exit(0);
 }
