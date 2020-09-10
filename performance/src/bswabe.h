@@ -85,7 +85,7 @@ void bswabe_enc( bswabe_pub_t* pub, char* in_file, char* out_file, char* policy,
   Returns true if decryption succeeded, false if this key does not
   satisfy the policy of the ciphertext (in which case m is unaltered).
 */
-int bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, int keep);
+int bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer);
 
 /*
 	Print the Master Key

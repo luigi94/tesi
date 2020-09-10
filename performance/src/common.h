@@ -16,7 +16,10 @@ GByteArray* suck_file( char* file );
 void        spit_file( char* file, GByteArray* b, int free );
 
 void read_cpabe_file( char* file,    GByteArray** cph_buf,
-											int* file_len, GByteArray** aes_buf );
+											int* file_len, GByteArray** aes_buf);
+
+void read_cpabe_file_from_buffer(GByteArray** cph_buf,
+											int* file_len, GByteArray** aes_buf, unsigned char* file_buffer );
 
 void write_cpabe_file( char* file,   GByteArray* cph_buf,
 											 int file_len, GByteArray* aes_buf );

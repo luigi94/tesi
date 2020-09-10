@@ -863,7 +863,7 @@ dec_flatten( element_t r, bswabe_policy_t* p, bswabe_prv_t* prv, bswabe_pub_t* p
 }
 
 int
-bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, int keep)
+bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer)
 {
 	bswabe_prv_t* prv;
 	int file_len;
@@ -878,7 +878,7 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, in
 	element_init_GT(t, pub->p);
 	
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
-	read_cpabe_file(in_file, &cph_buf, &file_len, &aes_buf);
+	read_cpabe_file_from_buffer(&cph_buf, &file_len, &aes_buf, file_buffer);
 	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
 
 	check_sat(cph->p, prv);
@@ -913,9 +913,6 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* in_file, char* out_file, in
 	g_byte_array_free(aes_buf, 1);
 
 	spit_file(out_file, plt, 1);
-
-	if( !keep )
-		unlink(in_file);
 
 	element_clear(t);
 	element_clear(m);

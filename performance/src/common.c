@@ -243,6 +243,35 @@ void read_cpabe_file( char* file,    GByteArray** cph_buf,
 	fclose(f);
 }
 
+void read_cpabe_file_from_buffer(GByteArray** cph_buf,
+											int* file_len, GByteArray** aes_buf, unsigned char* file_buffer )
+{
+	uint32_t len;
+
+	*cph_buf = g_byte_array_new();
+	*aes_buf = g_byte_array_new();
+
+	/* read real file len as 32-bit big endian int */
+	*file_len = 0U;
+	*file_len = (int)(file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
+	file_buffer += 4UL;
+	
+	/* read aes buf */
+	len = 0U;
+	len = (file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
+	file_buffer += 4UL;
+	g_byte_array_set_size(*aes_buf, len);
+	memcpy((*aes_buf)->data, file_buffer, len);
+	file_buffer += (unsigned long) len;
+	
+	/* read cph buf */
+	len = 0U;
+	len = (file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
+	file_buffer += 4UL;
+	g_byte_array_set_size(*cph_buf, len);
+	memcpy((*cph_buf)->data, file_buffer, len);
+}
+
 void
 write_cpabe_file( char* file,   GByteArray* cph_buf,
 									int file_len, GByteArray* aes_buf )

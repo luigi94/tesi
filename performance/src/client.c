@@ -27,7 +27,6 @@
 ssize_t nbytes;
 int socket_fd;	
 
-char* received_file = "received.pdf.cpabe";
 char* cleartext_file = "received.pdf";
 char* partial_updates_received = "partial_updates_received";
 char* pub_file = "pub_key";
@@ -111,25 +110,15 @@ void recv_file_size(int socket_fd, long* file_size){
 	*file_size = atol(file_size_buf);
 	fprintf(stdout, "File size: %lu\n", *file_size);
 }
-void recv_file(int socket_fd, char* received_file, long file_size){
-	char* file_buffer;
-	FILE* f;
+void recv_file(int socket_fd, long file_size, unsigned char* file_buffer){
 	long remaining_data;
+	unsigned long pointer;
 	
-	if((file_buffer = (char*)malloc((size_t)file_size)) == NULL){
-		fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	if((f = fopen(received_file, "w")) == NULL){
-		fprintf(stdout, "Error in opening file to be received. Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
 	remaining_data = file_size;
+	pointer = 0UL;
 	while(remaining_data > 0){
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
-		nbytes = recv(socket_fd, file_buffer, count, 0);
+		nbytes = recv(socket_fd, (void*) (file_buffer + pointer), (size_t)count, 0);
 		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
@@ -141,11 +130,11 @@ void recv_file(int socket_fd, char* received_file, long file_size){
 			close(socket_fd);
 			exit(1);
 		}
-		fwrite(file_buffer, 1, count, f);
 		remaining_data -= nbytes;
+		pointer += (unsigned long) nbytes;
 		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %ld bytes\n", nbytes, remaining_data);
 	}
-  fclose(f);
+	fprintf(stdout, "Received %lu bytes\n", pointer);
 }
 
 void signal_handler();
@@ -159,6 +148,7 @@ int main(int argc, char *argv[]) {
 	char* user;
 	
 	unsigned char* updates_buffer;
+	unsigned char* file_buffer;
 	long file_size;
 	uint16_t type;
 	bswabe_pub_t* pub;
@@ -239,7 +229,13 @@ int main(int argc, char *argv[]) {
 		
 			recv_file_size(socket_fd, &file_size);
 			
-			recv_file(socket_fd, received_file, file_size);
+			if((file_buffer = (unsigned char*)malloc((size_t)file_size)) == NULL){
+				fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
+				close(socket_fd);
+				exit(1);
+			}
+			
+			recv_file(socket_fd, file_size, file_buffer);
 			
 			if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
 				fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
@@ -248,10 +244,11 @@ int main(int argc, char *argv[]) {
 			
 			pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
 			
-			if(!bswabe_dec(pub, prv_file, received_file, cleartext_file, 1))
+			if(!bswabe_dec(pub, prv_file, cleartext_file, file_buffer))
 				die("%s", bswabe_error());
 				
 			free(pub);
+			free(file_buffer);
 			
 			break;
 				
