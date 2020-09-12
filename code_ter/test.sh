@@ -38,12 +38,12 @@ cpabe-updatemk pub_key master_key upd_key
 cpabe-updatemk pub_key master_key upd_key
 cpabe-updatemk pub_key master_key upd_key
 
-#cpabe-update-partial-updates partial_updates upd_key pub_key
-#cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
+cpabe-update-partial-updates partial_updates upd_key pub_key
+cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
 
-cpabe-updatepk pub_key upd_key
+#cpabe-updatepk pub_key upd_key
 
-cpabe-updatedk kevin_priv_key upd_key pub_key
+#cpabe-updatedk kevin_priv_key upd_key pub_key
 
 cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
 cpabe-updatecp to_send.pdf.cpabe upd_key pub_key

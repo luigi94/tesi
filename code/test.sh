@@ -1,10 +1,5 @@
 #!/bin/bash
 rm master_key pub_key upd_key
-rm -r document.*
-touch document.txt
-echo "COSE SEGRETE" > document.txt
-<< 'MULTILINE-COMMENT'	
-
 cd libbswabe-0.9
 make clean
 ./configure
@@ -25,9 +20,10 @@ rm -r document.*
 touch document.txt
 echo "COSE SEGRETE" > document.txt
 chmod 777 document.txt
-MULTILINE-COMMENT
 
-cpabe-setup 
+cpabe-setup
+
+cpabe-updatemk pub_key master_key upd_key
 
 cpabe-keygen -o sara_priv_key pub_key master_key \
     sysadmin it_department 'office = 1431' 'hire_date = '`date +%s`
@@ -36,23 +32,26 @@ cpabe-keygen -o kevin_priv_key pub_key master_key \
     business_staff strategy_team 'executive_level = 7' \
     'office = 2362' 'hire_date = '`date +%s`
     
-cpabe-enc pub_key document.txt '(sysadmin and (hire_date < 946702800 or security_team)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team))'
+cpabe-enc -k pub_key document.txt '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
 
-cpabe-dec -k -o file1.txt pub_key kevin_priv_key document.txt.cpabe
 
 cpabe-updatemk pub_key master_key upd_key
 
 cpabe-updatepk pub_key upd_key
 
-cpabe-updatecp document.txt.cpabe upd_key pub_key
+cpabe-updatemk pub_key master_key upd_key
 
-cpabe-dec -k -o file2.txt pub_key kevin_priv_key document.txt.cpabe
+cpabe-updatepk pub_key upd_key
 
 cpabe-updatedk kevin_priv_key upd_key pub_key
 
-cpabe-dec -k -o file3.txt pub_key kevin_priv_key document.txt.cpabe
+cpabe-updatecp document.txt.cpabe upd_key pub_key
+cpabe-updatecp document.txt.cpabe upd_key pub_key
 
+cpabe-dec pub_key kevin_priv_key document.txt.cpabe
+
+<< 'MULTILINE-COMMENT'
+MULTILINE-COMMENT
 chmod 777 -R .
-
 echo "END"
 
