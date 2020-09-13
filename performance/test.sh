@@ -19,18 +19,18 @@ cpabe-updatemk pub_key master_key upd_key
 cp master_key Server
 cp pub_key Server
 cp pub_key Client
-rm master_key pub_key
+rm -f master_key pub_key
 
 cp kevin_priv_key Client
 cp partial_updates Server
-rm kevin_priv_key
-rm partial_updates
+rm -f kevin_priv_key
+rm -f partial_updates
 
 cp to_send.pdf.cpabe Server
 rm to_send.pdf.cpabe
 
 cp upd_key Server
-rm upd_key
+rm -f upd_key
 
 #cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
 

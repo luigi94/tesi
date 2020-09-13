@@ -98,7 +98,7 @@ uint32_t get_msk_version(char* msk_file){
 	unsigned char* buf;
 	
 	if((f = fopen(msk_file, "r")) == NULL) {
-		fprintf(stderr, "Error in opening file. Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in opening file (1**). Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
@@ -122,11 +122,11 @@ uint32_t get_partial_updates_version(char* partial_updates_file){
 	unsigned char* buf;
 	
 	if((f = fopen(partial_updates_file, "r")) == NULL) {
-		fprintf(stderr, "Error in opening file. Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in opening file (2**). Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		fprintf(stderr, "Error in opening file. Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in malloc(). Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	fread(buf, 1, 4L, f);
@@ -880,6 +880,8 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 	read_cpabe_file_from_buffer(&cph_buf, &file_len, &aes_buf, file_buffer);
 	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
+	
+	print_cph_t(cph);
 
 	check_sat(cph->p, prv);
 	if( !cph->p->satisfiable )

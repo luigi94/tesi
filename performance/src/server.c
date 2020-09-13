@@ -29,6 +29,7 @@
 #define UPDATES_LEN 260
 
 ssize_t nbytes;
+size_t ret;
 int socket_fd;
 
 char* partial_updates_file = "partial_updates";
@@ -36,6 +37,7 @@ char* ciphertext_file = "to_send.pdf.cpabe";
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* upd_file = "upd_key";
+char* tmp_file = "tmp_file";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
@@ -171,6 +173,71 @@ void send_file(int new_socket_fd, char* to_send){
 		remaining_data -= nbytes;
 	}
 }
+
+void create_tmp_file(char* ciphertext_file, char* partial_updates_file, char* tmp_file){
+  FILE* tmp;
+  FILE* f_ciphertext;
+  FILE* f_partial_updates;
+  unsigned long ciphertext_len;
+  unsigned char* ciphertext_buf;
+  unsigned char* partial_updates_buf;
+  
+	if((tmp = fopen(tmp_file, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", tmp_file, strerror(errno));
+		exit(1);
+	}
+	
+	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", ciphertext_file, strerror(errno));
+		exit(1);
+	}
+	
+	fseek(f_ciphertext, 0, SEEK_END);
+	ciphertext_len = ftell(f_ciphertext);
+	rewind(f_ciphertext);
+	
+	if((ciphertext_buf = (unsigned char*)malloc(ciphertext_len)) == NULL){
+		fprintf(stderr, "Error in malloc(). Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	if(fread(ciphertext_buf, 1, ciphertext_len, f_ciphertext) < ciphertext_len){
+		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", ciphertext_file, strerror(errno));
+		exit(1);
+	}
+	fclose(f_ciphertext);
+	
+	if(fwrite(ciphertext_buf, 1, ciphertext_len, tmp) < ciphertext_len){
+		fprintf(stderr, "Error while writing file '%s' (2). Error: %s\n", tmp_file, strerror(errno));
+		exit(1);
+	}
+	free(ciphertext_buf);
+  
+	if(partial_updates_file != NULL){
+		if((f_partial_updates = fopen(partial_updates_file, "r")) == NULL){
+			fprintf(stderr, "Error in opening %s. Error: %s\n", partial_updates_file, strerror(errno));
+			exit(1);
+		}
+		if((partial_updates_buf = (unsigned char*)malloc(UPDATES_LEN)) == NULL){
+			fprintf(stderr, "Error in malloc(). Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		if(fread(partial_updates_buf, 1, UPDATES_LEN, f_partial_updates) < UPDATES_LEN){
+			fprintf(stderr, "Error while reading file '%s'. Error: %s\n", partial_updates_file, strerror(errno));
+			exit(1);
+		}
+		fclose(f_partial_updates);
+		
+		if(fwrite(partial_updates_buf, 1, UPDATES_LEN, tmp) < UPDATES_LEN){
+			fprintf(stderr, "Error while writing file '%s' (1). Error: %s\n", tmp_file, strerror(errno));
+			exit(1);
+		}
+		free(partial_updates_buf);
+	}
+	
+	fclose(tmp);
+	
+}
+
 int main(int argc, char *argv[]) {
     int port, new_socket_fd;
     struct sockaddr_in address;
@@ -276,6 +343,8 @@ void *pthread_routine(void *arg) {
   uint32_t master_key_version;
   uint32_t cph_version;
   bswabe_pub_t* pub;
+  
+  char* tmp_file = "tmp_file";
  	
   receive_username_size(new_socket_fd, &username_size);
 	if((user = (char*)malloc(username_size)) == NULL){
@@ -323,19 +392,22 @@ void *pthread_routine(void *arg) {
 	free(pub);
 	send_type(type, new_socket_fd);
 	
-	switch(type){
-		case 0:
-			send_updates(new_socket_fd, partial_updates_file);
+	if(type == 0){
+	
+		create_tmp_file(ciphertext_file, partial_updates_file, tmp_file);
+	
+	}else if(type == 1){
 		
-		case 1:
-			send_file(new_socket_fd, ciphertext_file);
-			break;
-			
-		default:
-			fprintf(stderr, "Unknown response type\n");
-			close(new_socket_fd);
-			exit(1);
+		create_tmp_file(ciphertext_file, NULL, tmp_file);
+	
+	}else{
+		fprintf(stderr, "Unknown response type\n");
+		close(new_socket_fd);
+		exit(1);
 	}
+	send_file(new_socket_fd, tmp_file);
+	unlink(tmp_file);
+	
   close(new_socket_fd);
   free(user);
 	
@@ -345,5 +417,5 @@ void *pthread_routine(void *arg) {
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, " <-- Signal handler invoked\n");
 	close(socket_fd);
-  exit(0);
+  exit(1);
 }

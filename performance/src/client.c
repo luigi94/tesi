@@ -90,7 +90,7 @@ void recv_key_updates(int socket_fd, unsigned char* updates_buffer){
 		exit(1);
 	}
 }
-void recv_file_size(int socket_fd, long* file_size){
+void recv_file_size(int socket_fd, size_t* file_size){
 	char file_size_buf[8];
 
 	nbytes = recv(socket_fd, (void*)file_size_buf, 8, 0);
@@ -107,11 +107,11 @@ void recv_file_size(int socket_fd, long* file_size){
 		exit(1);
 	}
 
-	*file_size = atol(file_size_buf);
+	*file_size = (size_t)atol(file_size_buf);
 	fprintf(stdout, "File size: %lu\n", *file_size);
 }
 void recv_file(int socket_fd, long file_size, unsigned char* file_buffer){
-	long remaining_data;
+	size_t remaining_data;
 	unsigned long pointer;
 	
 	remaining_data = file_size;
@@ -130,9 +130,9 @@ void recv_file(int socket_fd, long file_size, unsigned char* file_buffer){
 			close(socket_fd);
 			exit(1);
 		}
-		remaining_data -= nbytes;
-		pointer += (unsigned long) nbytes;
-		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %ld bytes\n", nbytes, remaining_data);
+		remaining_data -= (size_t)nbytes;
+		pointer += (size_t) nbytes;
+		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %lu bytes\n", nbytes, remaining_data);
 	}
 	fprintf(stdout, "Received %lu bytes\n", pointer);
 }
@@ -147,9 +147,11 @@ int main(int argc, char *argv[]) {
 	size_t username_size;
 	char* user;
 	
-	unsigned char* updates_buffer;
+	unsigned char* partial_updates_buf;
+	unsigned char* ciphertext_buf;
 	unsigned char* file_buffer;
-	long file_size;
+	size_t file_size;
+	size_t ciphertext_size;
 	uint16_t type;
 	bswabe_pub_t* pub;
 
@@ -209,54 +211,63 @@ int main(int argc, char *argv[]) {
 	receive_type(&type, socket_fd);
 	
 	fprintf(stdout, "Response type: %d\n", type);
+
+	recv_file_size(socket_fd, &file_size);
 	
-	switch(type){
-		case 0:
-			
-			if((updates_buffer = (unsigned char*)malloc(UPDATES_LEN)) == NULL){
-				fprintf(stderr, "Error in allocating memory for the updates to be received. Error: %s\n", strerror(errno));
-				close(socket_fd);
-				exit(1);
-			}
-			
-			recv_key_updates(socket_fd, updates_buffer);
-			
-			bswabe_update_pub_and_prv_keys_partial(updates_buffer, pub_file, prv_file);
-			
-			free(updates_buffer);
-			
-		case 1:
-		
-			recv_file_size(socket_fd, &file_size);
-			
-			if((file_buffer = (unsigned char*)malloc((size_t)file_size)) == NULL){
-				fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
-				close(socket_fd);
-				exit(1);
-			}
-			
-			recv_file(socket_fd, file_size, file_buffer);
-			
-			if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
-				fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
-				exit(1);
-			}
-			
-			pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-			
-			if(!bswabe_dec(pub, prv_file, cleartext_file, file_buffer))
-				die("%s", bswabe_error());
-				
-			free(pub);
-			free(file_buffer);
-			
-			break;
-				
-			default:
-				fprintf(stderr, "Unknown response type\n");
-				close(socket_fd);
-				exit(1);
+	if((file_buffer = (unsigned char*)malloc(file_size)) == NULL){
+		fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
+		close(socket_fd);
+		exit(1);
+	}
+	
+	recv_file(socket_fd, file_size, file_buffer);
+	
+	if(type == 0){
+		ciphertext_size = file_size - (size_t) UPDATES_LEN;
+		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
+			fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
+			close(socket_fd);
+			exit(1);
 		}
+		memcpy(ciphertext_buf, file_buffer, ciphertext_size);
+		if((partial_updates_buf = (unsigned char*)malloc((size_t)UPDATES_LEN)) == NULL){
+			fprintf(stdout, "Error in allocating memory for the partial updated buffe. Error: %s\n", strerror(errno));
+			close(socket_fd);
+			exit(1);
+		}
+		memcpy(partial_updates_buf, file_buffer + ciphertext_size, UPDATES_LEN);
+		bswabe_update_pub_and_prv_keys_partial(partial_updates_buf, pub_file, prv_file);
+		free(partial_updates_buf);
+		
+	} else if(type == 1){
+		ciphertext_size = file_size;
+		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
+			fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
+			close(socket_fd);
+			exit(1);
+		}
+		memcpy(ciphertext_buf, file_buffer, ciphertext_size);
+	
+	} else {
+		fprintf(stderr, "Unknown response type\n");
+		close(socket_fd);
+		exit(1);
+	}
+	
+	free(file_buffer);
+			
+	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+	
+	if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf))
+		die("%s", bswabe_error());
+	
+	free(ciphertext_buf);
+	free(pub);
 	
 	close(socket_fd);
 	
@@ -265,5 +276,5 @@ int main(int argc, char *argv[]) {
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, "Signal handler invoked\n");
 	close(socket_fd);
-  exit(0);
+  exit(1);
 }
