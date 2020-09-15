@@ -1,4 +1,4 @@
-OBJS = ./src/common.o ./src/core.o ./src/misc.o ./src/policy_lang.o
+OBJS = ./src/common.o ./src/core.o ./src/misc.o ./src/policy_lang.o ./src/util.o
 CC = gcc
 SRC = src
 CFLAGS  = -O3 -Wall -Wextra\

@@ -3,6 +3,9 @@ rm -rf Client/* Server/*
 make clean
 make all
 
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out srvprvkey.pem
+openssl pkey -in srvprvkey.pem -pubout -out srvpubkey.pem
+
 cpabe-setup
 
 #cpabe-keygen -o sara_priv_key -p dummy pub_key master_key sysadmin it_department 'office = 1431' 'hire_date = '`date +%s`
@@ -16,21 +19,15 @@ cpabe-updatemk pub_key master_key upd_key
 cpabe-updatemk pub_key master_key upd_key
 cpabe-updatemk pub_key master_key upd_key
 
-cp master_key Server
-cp pub_key Server
-cp pub_key Client
-rm -f master_key pub_key
-
-cp kevin_priv_key Client
-cp partial_updates Server
-rm -f kevin_priv_key
-rm -f partial_updates
-
-cp to_send.pdf.cpabe Server
-rm to_send.pdf.cpabe
-
-cp upd_key Server
-rm -f upd_key
+mv -f master_key Server
+cp -f pub_key Server
+mv -f pub_key Client
+mv -f kevin_priv_key Client
+mv -f partial_updates Server
+mv -f to_send.pdf.cpabe Server
+mv -f upd_key Server
+mv -f srvprvkey.pem Server
+mv -f srvpubkey.pem Client
 
 #cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
 

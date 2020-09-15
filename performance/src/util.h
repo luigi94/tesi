@@ -1,8 +1,7 @@
 #include <openssl/pem.h>
 
-#define BUFFERSIZE 32
-#define SGNSIZE 128
+#define MAX_BUF 1<<18
+#define UPDATES_LEN 260
 
-void sign(unsigned char* clear_buf, unsigned char* sgnt_buf, unsigned clear_size, unsigned* sgnt_size, EVP_PKEY* prvkey);
-
-void verify(unsigned char* file_buf, long file_size, unsigned char* sgn_buf, EVP_PKEY* pubkey);
+void sign(unsigned char* clear_buf, unsigned long* clear_size, char* prvkey_file_name);
+void verify(unsigned char* file_buf, unsigned long* file_size, char* pubkey_file_name);

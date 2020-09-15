@@ -289,7 +289,7 @@ unserialize_policy( bswabe_pub_t* pub, GByteArray* b, int* offset )
 	int n;
 	bswabe_policy_t* p;
 
-	p = (bswabe_policy_t*) malloc(sizeof(bswabe_policy_t));
+	p = (bswabe_policy_t*) calloc(1, sizeof(bswabe_policy_t));
 
 	p->k = (int) unserialize_uint32(b, offset);
 	p->attr = 0;

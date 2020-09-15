@@ -880,8 +880,6 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 	read_cpabe_file_from_buffer(&cph_buf, &file_len, &aes_buf, file_buffer);
 	cph = bswabe_cph_unserialize(pub, cph_buf, 1);
-	
-	print_cph_t(cph);
 
 	check_sat(cph->p, prv);
 	if( !cph->p->satisfiable )
@@ -915,6 +913,9 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	g_byte_array_free(aes_buf, 1);
 
 	spit_file(out_file, plt, 1);
+	
+	free(prv);
+	free(cph);
 
 	element_clear(t);
 	element_clear(m);
