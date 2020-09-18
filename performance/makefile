@@ -30,7 +30,7 @@ Server/server: $(OBJS) $(SRC)/server.o | Server
 all: $(TARGETS)
 
 clean:
-	rm -f $(OBJS) $(TARGETS)
+	rm -f $(OBJS) $(TARGETS) ./src/*.o
 
 Client:
 	mkdir -p $@

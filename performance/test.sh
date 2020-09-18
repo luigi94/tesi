@@ -27,6 +27,7 @@ mv -f partial_updates Server
 mv -f to_send.pdf.cpabe Server
 mv -f upd_key Server
 mv -f srvprvkey.pem Server
+cp -f srvpubkey.pem Server
 mv -f srvpubkey.pem Client
 
 #cpabe-updatecp to_send.pdf.cpabe upd_key pub_key

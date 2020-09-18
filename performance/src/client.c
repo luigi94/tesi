@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -33,17 +34,7 @@ char* pub_file = "pub_key";
 char* prv_file = "kevin_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
 
-void receive_type(int socket_fd, uint8_t *type){
-	unsigned char type_buffer;
-	nbytes = recv(socket_fd, &type_buffer, 1, 0);
-	if (nbytes != 1){
-		fprintf(stderr, "Error on receiving type %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	memcpy((void*)&(*type), (void*)&type_buffer, 1);
-}
-void send_username_size(int socket_fd, size_t* username_size){
+void send_username_size(const int socket_fd, const size_t* const restrict username_size){
 	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
@@ -56,7 +47,7 @@ void send_username_size(int socket_fd, size_t* username_size){
 		exit(1);
 	}
 }
-void send_username(int socket_fd, char* user, size_t username_size){
+void send_username(const int socket_fd, const char* const restrict user, const size_t username_size){
 	nbytes = send(socket_fd, (void*)user, username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername from socket %d. Error: %s\n", socket_fd, strerror(errno));
@@ -69,31 +60,12 @@ void send_username(int socket_fd, char* user, size_t username_size){
 		exit(1);
 	}
 }
-void recv_key_updates(int socket_fd, unsigned char* updates_buffer){
-	nbytes = recv(socket_fd, updates_buffer, UPDATES_LEN, 0);
-	fprintf(stdout, "Received %ld bytes for the updates\n", nbytes);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in receiving key updates from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	if((unsigned long)nbytes < UPDATES_LEN){
-		fprintf(stderr, "Key updates not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-}
-void recv_data_size(int socket_fd, size_t* file_size){
-	unsigned char* data_size_buf;
-
-	if((data_size_buf = (unsigned char*)malloc((size_t)8)) == NULL){
-		fprintf(stderr, "Error in allocating memeory for data size buffer. Error: %s\n", strerror(errno));
-		exit(1);
-	}
+void recv_data(const int socket_fd, unsigned char** const restrict data_buf, const unsigned long* const restrict data_size){
+	unsigned long remaining_data;
+	unsigned long pointer;
 	
-	nbytes = recv(socket_fd, (void*)data_size_buf, 8, 0);
-	fprintf(stdout, "Received %ld bytes on socket %d for file size\n", nbytes, socket_fd);
-		
+	nbytes = recv(socket_fd, (void*)&(*data_size), (size_t)LENGTH_FIELD_LEN, 0);
+	fprintf(stdout, "Received %ld bytes on socket %d for data size\n", nbytes, socket_fd);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
 		close(socket_fd);
@@ -105,19 +77,19 @@ void recv_data_size(int socket_fd, size_t* file_size){
 		exit(1);
 	}
 	
-	memcpy((void*)&(*file_size), (void*)data_size_buf, 8);
-	fprintf(stdout, "File size: %lu\n", *file_size);
-	free(data_size_buf);
-}
-void recv_data(int socket_fd, size_t file_size, unsigned char* file_buffer){
-	size_t remaining_data;
-	unsigned long pointer;
+	fprintf(stdout, "Data size = %lu\n", *data_size);
 	
-	remaining_data = file_size;
-	pointer = 0UL;
+	if((*data_buf = (unsigned char*)malloc((size_t)*data_size)) == NULL){
+		fprintf(stderr, "Error in allocating memeory for data size buffer. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	memcpy((void*)*data_buf, (void*)&(*data_size), LENGTH_FIELD_LEN);
+	
+	remaining_data = *data_size - (unsigned long)LENGTH_FIELD_LEN;
+	pointer = (unsigned long) LENGTH_FIELD_LEN;
 	while(remaining_data > 0){
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
-		nbytes = recv(socket_fd, (void*) (file_buffer + pointer), (size_t)count, 0);
+		nbytes = recv(socket_fd, (void*) (*data_buf + pointer), count, 0);
 		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
@@ -126,15 +98,21 @@ void recv_data(int socket_fd, size_t file_size, unsigned char* file_buffer){
 		}
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - File not entirely received from socket %d\n", socket_fd);
-			//close(socket_fd);
-			//exit(1);
 		}
-		remaining_data -= (size_t)nbytes;
-		pointer += (size_t) nbytes;
+		remaining_data -= (unsigned long)nbytes;
+		pointer += (unsigned long) nbytes;
 		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %lu bytes\n", nbytes, remaining_data);
 	}
 	
 	fprintf(stdout, "Received %lu bytes\n", pointer);
+}
+
+void check_freshness(const unsigned long now, const unsigned long time_stamp){
+	fprintf(stdout, "Current time stamp is %lu\n", now);
+	if(now - time_stamp > (unsigned long)FRESHNESS_THRESHOLD){
+		fprintf(stderr, "Received data are autodated\n");
+		exit(1);
+	}
 }
 
 void signal_handler();
@@ -150,14 +128,16 @@ int main(int argc, char *argv[]) {
 	
 	unsigned char* partial_updates_buf;
 	unsigned char* ciphertext_buf;
-	unsigned char* file_buffer;
-	unsigned long offset;
-	size_t file_size;
-	size_t ciphertext_size;
+	unsigned char* data_buf;
+	unsigned long data_size;
+	unsigned long ciphertext_size;
 	uint8_t type;
 	bswabe_pub_t* pub;
 	
+	unsigned long pointer;
+	
 	unsigned long time_stamp;
+	unsigned long now;
 
 	if (argc != 4) {
 		fprintf(stderr, "USAGE: ./client server_address port_number user\n");
@@ -205,78 +185,67 @@ int main(int argc, char *argv[]) {
 
 	send_username(socket_fd, user, username_size);
 	
-	receive_type(socket_fd, &type);
+	recv_data(socket_fd, &data_buf, &data_size);
 	
-	fprintf(stdout, "Response type: %hhu\n", type);
-
-	recv_data_size(socket_fd, &file_size);
+	fprintf(stdout, "Closing socket\n");
+	close(socket_fd);
 	
-	if((file_buffer = (unsigned char*)malloc(file_size)) == NULL){
-		fprintf(stdout, "Error in allocating memory for the file to be received. Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
+	/* I take the current time_stamp before the signature verification 
+	because this procedure may take a long time */
+	now = (unsigned long)time(NULL);
 	
-	recv_data(socket_fd, file_size, file_buffer);
-	verify(file_buffer, &file_size, pubkey_file_name);
+	verify(data_buf, &data_size, pubkey_file_name);
 	
-	ciphertext_size = file_size - sizeof(unsigned long);
+	pointer = (unsigned long) LENGTH_FIELD_LEN;
+	
+	/* Get timestamp and check freshness */
+	memcpy((void*)&time_stamp, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
+	check_freshness(now, time_stamp);
+	
+	/* Get response type */
+	pointer += (unsigned long) TIMESTAMP_LEN;
+	memcpy((void*)&type, (void*)(data_buf + pointer), (size_t)TYPE_LEN);
+	fprintf(stdout, "Type is %hhu\n", type);
+	pointer += (unsigned long) TYPE_LEN;
 	
 	if(type == 0){
-		ciphertext_size -= (size_t) UPDATES_LEN;
-		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
-			fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
-			close(socket_fd);
-			exit(1);
-		}
-		memcpy((void*)ciphertext_buf, (void*)file_buffer, ciphertext_size);
-		offset = ciphertext_size;
 		if((partial_updates_buf = (unsigned char*)malloc((size_t)UPDATES_LEN)) == NULL){
-			fprintf(stdout, "Error in allocating memory for the partial updated buffe. Error: %s\n", strerror(errno));
-			close(socket_fd);
+			fprintf(stdout, "Error in allocating memory for the partial updated buffer. Error: %s\n", strerror(errno));
 			exit(1);
 		}
-		memcpy((void*)partial_updates_buf, (void*)(file_buffer + offset), UPDATES_LEN);
-		offset += UPDATES_LEN;
+		memcpy((void*)partial_updates_buf, (void*)(data_buf + pointer), (size_t)UPDATES_LEN);
+		write_binary(partial_updates_buf, UPDATES_LEN, "par_upd");
 		bswabe_update_pub_and_prv_keys_partial(partial_updates_buf, pub_file, prv_file);
 		free(partial_updates_buf);
+		pointer += (unsigned long) UPDATES_LEN;
 		
-	} else if(type == 1){
-		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
-			fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
-			close(socket_fd);
-			exit(1);
-		}
-		memcpy((void*)ciphertext_buf, (void*)file_buffer, ciphertext_size);
-		offset = ciphertext_size;
-	
-	} else {
+	} else if(type != 1){
 		fprintf(stderr, "Unknown response type\n");
-		close(socket_fd);
 		exit(1);
 	}
+	/* Here type is 0 or 1 */
+	ciphertext_size = data_size - pointer;
+	if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
+		fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	fprintf(stdout, "Ciphertext size: %lu\n", ciphertext_size);
+	memcpy((void*)ciphertext_buf, (void*)(data_buf + pointer), ciphertext_size);
 	
-	memcpy((void*)&time_stamp, (void*)(file_buffer + offset), 8);
-	offset += 8;
-	fprintf(stdout, "Timestamp received: %lu\n", time_stamp);
+	free(data_buf);
 	
-	free(file_buffer);
-			
 	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
 		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	
+
 	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	
 	if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf))
 		die("%s", bswabe_error());
-	
+		
 	free(ciphertext_buf);
 	free(pub);
 	free(user);
-	
-	close(socket_fd);
 	
 	return 0;
 }

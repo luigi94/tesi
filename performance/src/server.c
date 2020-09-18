@@ -38,6 +38,7 @@ char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* upd_file = "upd_key";
 char* prvkey_file_name = "srvprvkey.pem";
+char* pubkey_file_name = "srvpubkey.pem";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
@@ -50,17 +51,7 @@ void *pthread_routine(void *arg);
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
 
-void send_type(int new_socket_fd, uint8_t type) {
-	unsigned char type_buffer;
-	memcpy((void*)&type_buffer, (void*)&type, 1);
-	nbytes = send(new_socket_fd, &type_buffer, 1, 0);
-	if (nbytes !=1){
-		fprintf(stderr, "Error in sending response type from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
-		exit(1);
-	}
-}
-void receive_username_size(int new_socket_fd, size_t* username_size){
+void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
 	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
@@ -73,7 +64,7 @@ void receive_username_size(int new_socket_fd, size_t* username_size){
 		exit(1);
 	}
 }
-void receive_username(int new_socket_fd, char* user, size_t username_size){
+void receive_username(const int new_socket_fd, char* const restrict user, const size_t username_size){
 	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
@@ -87,47 +78,36 @@ void receive_username(int new_socket_fd, char* user, size_t username_size){
 	}
 }
 
-void send_data(int new_socket_fd, unsigned char* to_send, unsigned long total_len){
+void send_data(const int new_socket_fd, const unsigned char* const restrict to_send, const unsigned long total_len){
 
   unsigned long offset;
   unsigned long remaining_data;
-  unsigned char* data_size_buf;
-	
-	if((data_size_buf = (unsigned char*)malloc((size_t)8)) == NULL){
-		fprintf(stderr, "Error in allocating memeory for data size buffer. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	memcpy((void*)data_size_buf, (void*)&total_len, 8);
   
-	/* Sending file length */
-	fprintf(stdout, "Sending %lu bytes for data size (%lu)\n", sizeof(data_size_buf), total_len);
-	nbytes = send(new_socket_fd, (void*)data_size_buf, sizeof(data_size_buf), 0);
+	nbytes = send(new_socket_fd, (void*)to_send, (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending firmware updates size on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 		close(new_socket_fd);
 		exit(1);
 	}
-	if((unsigned long) nbytes < sizeof(data_size_buf)){
-		fprintf(stderr, "Firmware updates not entirely sent on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+	if((size_t) nbytes < LENGTH_FIELD_LEN){
+		fprintf(stdout, "WARNING - Firmware updates size not entirely sent on socket %d\n", new_socket_fd);
 		close(new_socket_fd);
 		exit(1);
 	}
-	free(data_size_buf);
-	fprintf(stdout, "Sent %ld bytes for the firmware updates size\n", nbytes);
 	
-	offset = 0;
-	remaining_data = total_len;
+	offset = LENGTH_FIELD_LEN;
+	remaining_data = total_len - LENGTH_FIELD_LEN;
 	while (remaining_data > 0) {
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
 		nbytes = send(new_socket_fd, (void*)(to_send + offset), count, 0);
 		fprintf(stdout, "Sent %ld bytes on expected %lu\n", nbytes, count);
 		if(nbytes < 0){
-			fprintf(stderr, "Error in sending firmware updates on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
+			fprintf(stderr, "Error in sending firmware updates chunk on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 			close(new_socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
-			fprintf(stdout, "WARNING - Firmware updates size not entirely sent on socket %d\n", new_socket_fd);
+			fprintf(stdout, "WARNING - Firmware updates chunk not entirely sent on socket %d\n", new_socket_fd);
 			//close(new_socket_fd);
 			//exit(1);
 		}
@@ -136,35 +116,52 @@ void send_data(int new_socket_fd, unsigned char* to_send, unsigned long total_le
 	}
 }
 
-void make_buffer(char* ciphertext_file, char* partial_updates_file, unsigned char** buffer, unsigned long* total_len){
+void make_buffer_and_sign(const uint8_t type, const char* const restrict ciphertext_file, const char* const restrict partial_updates_file, unsigned char** const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
   FILE* f_ciphertext;
   FILE* f_partial_updates;
   
   unsigned long ciphertext_len;
-	unsigned long pointer;
 	unsigned long time_stamp;
-  
-  /* Adding ciphertext */
-	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
-		fprintf(stderr, "Error in opening %s. Error: %s\n", ciphertext_file, strerror(errno));
-		exit(1);
-	}
+	unsigned char* sgnt_buf;
+	unsigned long sgnt_size;
 	
-	fseek(f_ciphertext, 0, SEEK_END);
-	ciphertext_len = ftell(f_ciphertext);
-	rewind(f_ciphertext);
+	unsigned long pointer;
 	
-	*total_len = ciphertext_len;
-	if((*buffer = (unsigned char*)malloc(*total_len)) == NULL){
-		fprintf(stderr, "Error in malloc(). Error: %s\n", strerror(errno));
+	/*
+	.---------------------------------------------------------------------------.
+	| TOTAL LEN | TIMESTAMP |  TYPE  | PARTIAL UPDATES | CIPHERTEXT | SIGNATURE |
+	|  8 BYTES  |  8 BYTES  | 1 BYTE |    260 BYTES    |  VARIABLE  | 512 BYTES |
+	|           |           |        |  (IF TYPE IS 0) |		SIZE    |           |
+	'---------------------------------------------------------------------------'
+	*/
+	
+	/* Allocating memory for total len (it will be updated at the end of this function */
+	if((*buffer = (unsigned char*)malloc((size_t)LENGTH_FIELD_LEN)) == NULL){
+		fprintf(stderr, "Error in allocating memory for message total length. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	if(fread(*buffer, 1, ciphertext_len, f_ciphertext) < ciphertext_len){
-		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", ciphertext_file, strerror(errno));
+	*total_len = LENGTH_FIELD_LEN;
+	
+	/* Adding timestamp */
+	time_stamp = (unsigned long)time(NULL);
+	pointer = *total_len;
+	*total_len += (unsigned long)TIMESTAMP_LEN;
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in reallocating memory for timestamp. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	fclose(f_ciphertext);
-  
+	fprintf(stdout, "Appended timestamp %lu\n", time_stamp);
+	memcpy((void*)(*buffer + pointer), (void*)&time_stamp, (size_t)TIMESTAMP_LEN);
+	
+	/* Adding type */
+	pointer = *total_len;
+	*total_len += (unsigned long)TYPE_LEN;
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in reallocating memeory for response type. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	memcpy((void*)(*buffer + pointer), (void*)&type, (size_t)TYPE_LEN);
+	
   /* Adding partial updates (if needed) */
 	if(partial_updates_file != NULL){
 		if((f_partial_updates = fopen(partial_updates_file, "r")) == NULL){
@@ -177,23 +174,56 @@ void make_buffer(char* ciphertext_file, char* partial_updates_file, unsigned cha
 			fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
 			exit(1);
 		}
-		if(fread(*buffer + pointer, 1, UPDATES_LEN, f_partial_updates) < UPDATES_LEN){
+		if(fread((void*)(*buffer + pointer), 1, UPDATES_LEN, f_partial_updates) < UPDATES_LEN){
 			fprintf(stderr, "Error while reading file '%s'. Error: %s\n", partial_updates_file, strerror(errno));
 			exit(1);
 		}
 		fclose(f_partial_updates);
 	}
-	
-	/* Adding timestamp */
-	time_stamp = (unsigned long)time(NULL);
-	pointer = *total_len;
-	*total_len += 8;
-	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-		fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
+  
+  /* Adding ciphertext */
+	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", ciphertext_file, strerror(errno));
 		exit(1);
 	}
-	fprintf(stdout, "Appended timestamp %lu\n", time_stamp);
-	memcpy((void*)(*buffer + pointer), (void*)&time_stamp, 8);
+	
+	fseek(f_ciphertext, 0, SEEK_END);
+	ciphertext_len = ftell(f_ciphertext);
+	rewind(f_ciphertext);
+	
+	pointer = *total_len;
+	*total_len += ciphertext_len;
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in reallocating memeory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	if(fread((void*)(*buffer + pointer), 1, ciphertext_len, f_ciphertext) < ciphertext_len){
+		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", ciphertext_file, strerror(errno));
+		exit(1);
+	}
+	fclose(f_ciphertext);
+	
+	pointer = *total_len;
+	*total_len += (unsigned long) EXP_SGNT_SIZE;
+	memcpy((void*)*buffer, (void*)&(*total_len), LENGTH_FIELD_LEN);
+	
+	fprintf(stdout, "After write %lu as data len\n", *total_len);
+	
+	sign(*buffer, *total_len - (unsigned long) EXP_SGNT_SIZE, &sgnt_buf, &sgnt_size, prvkey_file_name);
+	
+	if(sgnt_size != (unsigned long) EXP_SGNT_SIZE){
+		fprintf(stderr, "Signature size does not match expected size\n");
+		exit(1);
+	}
+	
+	/* Adding signature */
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in reallocating memeory for signature. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	memcpy((void*)(*buffer + pointer), (void*)sgnt_buf, sgnt_size);
+	
+	free(sgnt_buf);
 	
 	fprintf(stdout, "Total length to send: %lu\n", *total_len);
 }
@@ -351,22 +381,21 @@ void *pthread_routine(void *arg) {
 		exit(1);
 	}
 	free(pub);
-	send_type(new_socket_fd, type);
 	
 	if(type == 0){
 	
-		make_buffer(ciphertext_file, partial_updates_file, &buffer, &total_len);
+		make_buffer_and_sign(type, ciphertext_file, partial_updates_file, &buffer, &total_len, prvkey_file_name);
 	
 	}else if(type == 1){
 		
-		make_buffer(ciphertext_file, NULL, &buffer, &total_len);
+		make_buffer_and_sign(type, ciphertext_file, NULL, &buffer, &total_len, prvkey_file_name);
 	
 	}else{
 		fprintf(stderr, "Unknown response type\n");
 		close(new_socket_fd);
 		exit(1);
 	}
-	sign(buffer, &total_len, prvkey_file_name);
+	
 	send_data(new_socket_fd, buffer, total_len);
 	
   close(new_socket_fd);

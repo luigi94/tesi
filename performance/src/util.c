@@ -5,17 +5,16 @@
 
 #include "util.h"
 
-void sign(unsigned char* clear_buf, unsigned long* clear_size, char* prvkey_file_name){
+void sign(const unsigned char* const restrict clear_buf, const unsigned long clear_size, unsigned char** const restrict sgnt_buf, unsigned long* const restrict sgnt_size, const char* const restrict prvkey_file_name){
 	const EVP_MD* md;
 	EVP_MD_CTX* md_ctx;
 	int ret;
-	unsigned char* sgnt_buf;
-	unsigned sgnt_size;
 	FILE* prvkey_file;
 	EVP_PKEY* prvkey;
 	unsigned expected_sgn_size;
+	unsigned tmp;
 	
-	if(*clear_size > INT_MAX){
+	if(clear_size > INT_MAX){
 		fprintf(stderr, "Buffer to sign too big\n");
 		exit(1);
 	}
@@ -28,7 +27,7 @@ void sign(unsigned char* clear_buf, unsigned long* clear_size, char* prvkey_file
 	fclose(prvkey_file);
 	expected_sgn_size = (unsigned) EVP_PKEY_size(prvkey);
 
-	if((sgnt_buf = (unsigned char*)malloc((size_t)expected_sgn_size)) == NULL){
+	if((*sgnt_buf = (unsigned char*)malloc((size_t)expected_sgn_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for signature. Error: %s\n", strerror(errno));
 		exit(1);
 	}
@@ -44,37 +43,31 @@ void sign(unsigned char* clear_buf, unsigned long* clear_size, char* prvkey_file
 		fprintf(stderr, "Error: EVP_SignInit returned %d\n", ret);
 		exit(1);
 	}
-	if(EVP_SignUpdate(md_ctx, clear_buf, (unsigned)*clear_size) == 0){
+	if(EVP_SignUpdate(md_ctx, clear_buf, (unsigned)clear_size) == 0){
 		fprintf(stderr, "Error: EVP_SignUpdate returned %d\n", ret);
 		exit(1);
 	}
-	if(EVP_SignFinal(md_ctx, sgnt_buf, &sgnt_size, prvkey) == 0){
+	if(EVP_SignFinal(md_ctx, *sgnt_buf, &tmp, prvkey) == 0){
 		fprintf(stderr, "Error: EVP_SignFinal returned %d\n", ret);
 		exit(1);
 	}
-	if(sgnt_size < expected_sgn_size){
+	if(tmp < expected_sgn_size){
 		fprintf(stderr, "Error in signing, signature size does not match expected size\n");
 		exit(1);
 	}
 	
-	if((clear_buf = (unsigned char*)realloc(clear_buf, (size_t)(sgnt_size + *clear_size))) == NULL){
-		fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	memcpy((void*)(clear_buf + *clear_size), (void*)sgnt_buf, (size_t)sgnt_size);
-	*clear_size += (unsigned long)sgnt_size;
+	fprintf(stdout, "Signature size: %u, as expected\n", tmp);
 	
-	fprintf(stdout, "Signature size: %u, as expected\n", sgnt_size);
-	fprintf(stdout, "Now the buffer size is %lu\n", *clear_size);
+	*sgnt_size = (unsigned long)tmp;
 	
 	// delete the digest and the private key from memory:
 	EVP_MD_CTX_free(md_ctx);
 	EVP_PKEY_free(prvkey);
-	free(sgnt_buf);
 }
 
-void verify(unsigned char* file_buf, unsigned long* file_size, char* pubkey_file_name){
+void verify(const unsigned char* const restrict file_buf, unsigned long* const restrict file_size, const char* const restrict pubkey_file_name){
 	// declare some useful variables:
+	int ret;
 	FILE* pubkey_file;
 	EVP_PKEY* pubkey;
 	unsigned char* sgnt_buf;
@@ -93,7 +86,7 @@ void verify(unsigned char* file_buf, unsigned long* file_size, char* pubkey_file
 	const EVP_MD* md = EVP_sha256();
 	EVP_MD_CTX* md_ctx;
 	
-	*file_size -= (unsigned)sgnt_size;
+	*file_size -= (unsigned long)sgnt_size;
 	if((sgnt_buf = (unsigned char*)malloc((size_t)sgnt_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for signature. Error: %s\n", strerror(errno));
 		exit(1);
@@ -115,12 +108,31 @@ void verify(unsigned char* file_buf, unsigned long* file_size, char* pubkey_file
 		fprintf(stderr, "Error in EVP_VerifyUpdate\n");
 		exit(1); 
 	}
-	if(EVP_VerifyFinal(md_ctx, sgnt_buf, sgnt_size, pubkey) != 1){ // it is 0 if invalid signature, -1 if some other error, 1 if success.
+	ret = EVP_VerifyFinal(md_ctx, sgnt_buf, sgnt_size, pubkey);
+	if(ret == 0){ // it is 0 if invalid signature, -1 if some other error, 1 if success.
 		fprintf(stderr, "Error: EVP_VerifyFinal failed: invalid signature\n");
 		exit(1);
+	} else if(ret == -1){
+		fprintf(stderr, "Some error occured during signature verification\n");
+		exit(1);
+	}else if (ret == 1){
+		fprintf(stdout, "Signature verified\n");
+	}else{
+		fprintf(stderr, "I shouldn't be printed. EVP_VerifyFinal returned %d\n", ret);
+		exit(1);
 	}
-	fprintf(stdout, "Signature verified\n");
 	EVP_MD_CTX_free(md_ctx);
 	EVP_PKEY_free(pubkey);
 	free(sgnt_buf);
+}
+
+void write_binary(unsigned char* buffer, size_t data_len, char* name){
+
+	FILE* tmp;
+	tmp = fopen(name, "wb");
+	
+	fprintf(stdout, "I'm writing %lu bytes on %s\n", data_len, name);
+	fwrite(buffer, data_len, 1, tmp);
+	fclose(tmp);
+
 }

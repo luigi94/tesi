@@ -66,7 +66,7 @@
 
 
 /* First part of user prologue.  */
-#line 1 "../src/policy_lang.y"
+#line 1 "src/policy_lang.y"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -176,7 +176,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 45 "../src/policy_lang.y"
+#line 45 "src/policy_lang.y"
 
 	char* str;
 	uint64_t nat;
@@ -1373,122 +1373,122 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 67 "../src/policy_lang.y"
+#line 67 "src/policy_lang.y"
                { final_policy = (yyvsp[0].tree); }
 #line 1379 "y.tab.c"
     break;
 
   case 3:
-#line 69 "../src/policy_lang.y"
+#line 69 "src/policy_lang.y"
                                      { (yyval.sint) = expint((yyvsp[-2].nat), (yyvsp[0].nat)); }
 #line 1385 "y.tab.c"
     break;
 
   case 4:
-#line 70 "../src/policy_lang.y"
+#line 70 "src/policy_lang.y"
                                      { (yyval.sint) = flexint((yyvsp[0].nat));    }
 #line 1391 "y.tab.c"
     break;
 
   case 5:
-#line 72 "../src/policy_lang.y"
+#line 72 "src/policy_lang.y"
                                      { (yyval.tree) = leaf_policy((yyvsp[0].str));        }
 #line 1397 "y.tab.c"
     break;
 
   case 6:
-#line 73 "../src/policy_lang.y"
+#line 73 "src/policy_lang.y"
                                      { (yyval.tree) = kof2_policy(1, (yyvsp[-2].tree), (yyvsp[0].tree)); }
 #line 1403 "y.tab.c"
     break;
 
   case 7:
-#line 74 "../src/policy_lang.y"
+#line 74 "src/policy_lang.y"
                                      { (yyval.tree) = kof2_policy(2, (yyvsp[-2].tree), (yyvsp[0].tree)); }
 #line 1409 "y.tab.c"
     break;
 
   case 8:
-#line 75 "../src/policy_lang.y"
+#line 75 "src/policy_lang.y"
                                      { (yyval.tree) = kof_policy((yyvsp[-4].nat), (yyvsp[-1].list));     }
 #line 1415 "y.tab.c"
     break;
 
   case 9:
-#line 76 "../src/policy_lang.y"
+#line 76 "src/policy_lang.y"
                                      { (yyval.tree) = eq_policy((yyvsp[0].sint), (yyvsp[-2].str));      }
 #line 1421 "y.tab.c"
     break;
 
   case 10:
-#line 77 "../src/policy_lang.y"
+#line 77 "src/policy_lang.y"
                                      { (yyval.tree) = lt_policy((yyvsp[0].sint), (yyvsp[-2].str));      }
 #line 1427 "y.tab.c"
     break;
 
   case 11:
-#line 78 "../src/policy_lang.y"
+#line 78 "src/policy_lang.y"
                                      { (yyval.tree) = gt_policy((yyvsp[0].sint), (yyvsp[-2].str));      }
 #line 1433 "y.tab.c"
     break;
 
   case 12:
-#line 79 "../src/policy_lang.y"
+#line 79 "src/policy_lang.y"
                                      { (yyval.tree) = le_policy((yyvsp[0].sint), (yyvsp[-2].str));      }
 #line 1439 "y.tab.c"
     break;
 
   case 13:
-#line 80 "../src/policy_lang.y"
+#line 80 "src/policy_lang.y"
                                      { (yyval.tree) = ge_policy((yyvsp[0].sint), (yyvsp[-2].str));      }
 #line 1445 "y.tab.c"
     break;
 
   case 14:
-#line 81 "../src/policy_lang.y"
+#line 81 "src/policy_lang.y"
                                      { (yyval.tree) = eq_policy((yyvsp[-2].sint), (yyvsp[0].str));      }
 #line 1451 "y.tab.c"
     break;
 
   case 15:
-#line 82 "../src/policy_lang.y"
+#line 82 "src/policy_lang.y"
                                      { (yyval.tree) = gt_policy((yyvsp[-2].sint), (yyvsp[0].str));      }
 #line 1457 "y.tab.c"
     break;
 
   case 16:
-#line 83 "../src/policy_lang.y"
+#line 83 "src/policy_lang.y"
                                      { (yyval.tree) = lt_policy((yyvsp[-2].sint), (yyvsp[0].str));      }
 #line 1463 "y.tab.c"
     break;
 
   case 17:
-#line 84 "../src/policy_lang.y"
+#line 84 "src/policy_lang.y"
                                      { (yyval.tree) = ge_policy((yyvsp[-2].sint), (yyvsp[0].str));      }
 #line 1469 "y.tab.c"
     break;
 
   case 18:
-#line 85 "../src/policy_lang.y"
+#line 85 "src/policy_lang.y"
                                      { (yyval.tree) = le_policy((yyvsp[-2].sint), (yyvsp[0].str));      }
 #line 1475 "y.tab.c"
     break;
 
   case 19:
-#line 86 "../src/policy_lang.y"
+#line 86 "src/policy_lang.y"
                                      { (yyval.tree) = (yyvsp[-1].tree);                     }
 #line 1481 "y.tab.c"
     break;
 
   case 20:
-#line 88 "../src/policy_lang.y"
+#line 88 "src/policy_lang.y"
                                      { (yyval.list) = g_ptr_array_new();
                                        g_ptr_array_add((yyval.list), (yyvsp[0].tree)); }
 #line 1488 "y.tab.c"
     break;
 
   case 21:
-#line 90 "../src/policy_lang.y"
+#line 90 "src/policy_lang.y"
                                      { (yyval.list) = (yyvsp[-2].list);
                                        g_ptr_array_add((yyval.list), (yyvsp[0].tree)); }
 #line 1495 "y.tab.c"
@@ -1727,7 +1727,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 94 "../src/policy_lang.y"
+#line 94 "src/policy_lang.y"
 
 
 sized_integer_t*
