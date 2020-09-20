@@ -1,11 +1,14 @@
 #include <openssl/evp.h>
+#include <openssl/pem.h>
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "util.h"
 
-void sign(const unsigned char* const restrict clear_buf, const unsigned long clear_size, unsigned char** const restrict sgnt_buf, unsigned long* const restrict sgnt_size, const char* const restrict prvkey_file_name){
+void sign(const unsigned char* const restrict clear_buf, const unsigned long clear_size, unsigned char* restrict* const restrict sgnt_buf, unsigned long* const restrict sgnt_size, const char* const restrict prvkey_file_name){
 	const EVP_MD* md;
 	EVP_MD_CTX* md_ctx;
 	int ret;
@@ -126,13 +129,22 @@ void verify(const unsigned char* const restrict file_buf, unsigned long* const r
 	free(sgnt_buf);
 }
 
-void write_binary(unsigned char* buffer, size_t data_len, char* name){
-
+void write_file(unsigned char* buffer, size_t data_len, char* name){
 	FILE* tmp;
-	tmp = fopen(name, "wb");
-	
+	if((tmp = fopen(name, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", name, strerror(errno));
+		exit(1);
+	}
 	fprintf(stdout, "I'm writing %lu bytes on %s\n", data_len, name);
 	fwrite(buffer, data_len, 1, tmp);
 	fclose(tmp);
+}
 
+unsigned long get_milliseconds(){
+	struct timeval now;
+	if(gettimeofday(&now, NULL) != 0){
+		fprintf(stderr, "Error in gettimeofday(). Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	return (unsigned long) (now.tv_sec * 1000 + now.tv_usec / 1000);
 }
