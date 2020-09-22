@@ -11,7 +11,6 @@
 
 
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <sys/sendfile.h>
 
@@ -32,12 +31,13 @@ ssize_t nbytes;
 size_t ret;
 int socket_fd;
 
-char* partial_updates_file = "partial_updates";
 char* ciphertext_file = "to_send.pdf.cpabe";
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
-char* upd_file = "upd_key";
-char* prvkey_file_name = "srvprvkey.pem";
+char* srvprvkey = "srvprvkey.pem";
+char* cltpubkey = "cltpubkey.pem";
+char* decryption_key = "kevin_priv_key";
+char* encrypted_decription_key = "kevin_priv_key.enc";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
@@ -115,9 +115,8 @@ void send_data(const int new_socket_fd, const unsigned char* const restrict to_s
 	}
 }
 
-void make_buffer_and_sign(const uint8_t type, const char* const restrict ciphertext_file, const char* const restrict partial_updates_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
+void make_buffer_and_sign(const char* const restrict ciphertext_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
   FILE* f_ciphertext;
-  FILE* f_partial_updates;
   
   unsigned long ciphertext_len;
 	unsigned long time_stamp;
@@ -127,11 +126,11 @@ void make_buffer_and_sign(const uint8_t type, const char* const restrict ciphert
 	unsigned long pointer;
 	
 	/*
-	.---------------------------------------------------------------------------.
-	| TOTAL LEN | TIMESTAMP |  TYPE  | PARTIAL UPDATES | CIPHERTEXT | SIGNATURE |
-	|  8 BYTES  |  8 BYTES  | 1 BYTE |    260 BYTES    |  VARIABLE  | 512 BYTES |
-	|           |           |        |  (IF TYPE IS 0) |		SIZE    |           |
-	'---------------------------------------------------------------------------'
+	.------------------------------------------------.
+	| TOTAL LEN | TIMESTAMP | CIPHERTEXT | SIGNATURE |
+	|  8 BYTES  |  8 BYTES  |  VARIABLE  | 512 BYTES |
+	|           |           |	   SIZE    |           |
+	'------------------------------------------------'
 	*/
 	
 	/* Allocating memory for total len (it will be updated at the end of this function) */
@@ -151,34 +150,6 @@ void make_buffer_and_sign(const uint8_t type, const char* const restrict ciphert
 	}
 	fprintf(stdout, "Appended timestamp %lu\n", time_stamp);
 	memcpy((void*)(*buffer + pointer), (void*)&time_stamp, (size_t)TIMESTAMP_LEN);
-	
-	/* Adding type */
-	pointer = *total_len;
-	*total_len += (unsigned long)TYPE_LEN;
-	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-		fprintf(stderr, "Error in reallocating memeory for response type. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	memcpy((void*)(*buffer + pointer), (void*)&type, (size_t)TYPE_LEN);
-	
-  /* Adding partial updates (if needed) */
-	if(partial_updates_file != NULL){
-		if((f_partial_updates = fopen(partial_updates_file, "r")) == NULL){
-			fprintf(stderr, "Error in opening %s. Error: %s\n", partial_updates_file, strerror(errno));
-			exit(1);
-		}
-		pointer = *total_len;
-		*total_len += UPDATES_LEN;
-		if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-			fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
-			exit(1);
-		}
-		if(fread((void*)(*buffer + pointer), 1, UPDATES_LEN, f_partial_updates) < UPDATES_LEN){
-			fprintf(stderr, "Error while reading file '%s'. Error: %s\n", partial_updates_file, strerror(errno));
-			exit(1);
-		}
-		fclose(f_partial_updates);
-	}
   
   /* Adding ciphertext */
 	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
@@ -186,14 +157,14 @@ void make_buffer_and_sign(const uint8_t type, const char* const restrict ciphert
 		exit(1);
 	}
 	
-	fseek(f_ciphertext, 0, SEEK_END);
+	fseek(f_ciphertext, 0UL, SEEK_END);
 	ciphertext_len = ftell(f_ciphertext);
 	rewind(f_ciphertext);
 	
 	pointer = *total_len;
 	*total_len += ciphertext_len;
 	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-		fprintf(stderr, "Error in reallocating memeory. Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in reallocating memory for ciphertext. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	if(fread((void*)(*buffer + pointer), 1, ciphertext_len, f_ciphertext) < ciphertext_len){
@@ -326,11 +297,6 @@ void *pthread_routine(void *arg) {
   free(arg);
 	char* user;
 	size_t username_size;
-  uint8_t type;
-  uint32_t partial_updates_version;
-  uint32_t master_key_version;
-  uint32_t cph_version;
-  bswabe_pub_t* pub;
   unsigned char* buffer;
   unsigned long total_len;
  	
@@ -343,56 +309,8 @@ void *pthread_routine(void *arg) {
 	
 	receive_username(new_socket_fd, user, username_size);
 	
-	partial_updates_version = get_partial_updates_version(partial_updates_file);
-	cph_version = get_cph_version(ciphertext_file);
-	master_key_version = get_msk_version(msk_file);
-	
-	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
-		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
-		close(new_socket_fd);
-		exit(1);
-	}
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	
-	if(partial_updates_version < master_key_version){
-		fprintf(stdout, "Updating partial updates ...\n");
-		bswabe_update_partial_updates(pub, partial_updates_file, upd_file);
-		type = 0;
-	}
-	else if(partial_updates_version == master_key_version){
-		type = 1;
-	}
-	else{
-		fprintf(stderr, "Error - Partial updates version can't be greater than master key version\n");
-		close(new_socket_fd);
-		exit(1);
-	}
-	fprintf(stdout, "Type: %hu\n", type);
-	if(cph_version < master_key_version){
-		fprintf(stdout, "Updating ciphertext ...\n");
-		bswabe_update_cp(pub, ciphertext_file, upd_file);
-	}
-	else if (cph_version > master_key_version){
-		fprintf(stderr, "Error - Ciphertext version can't be greater than master key version\n");
-		close(new_socket_fd);
-		exit(1);
-	}
-	free(pub);
-	
-	if(type == 0){
-	
-		make_buffer_and_sign(type, ciphertext_file, partial_updates_file, &buffer, &total_len, prvkey_file_name);
-	
-	}else if(type == 1){
-		
-		make_buffer_and_sign(type, ciphertext_file, NULL, &buffer, &total_len, prvkey_file_name);
-	
-	}else{
-		fprintf(stderr, "Unknown response type\n");
-		close(new_socket_fd);
-		exit(1);
-	}
-	
+	make_buffer_and_sign(ciphertext_file, &buffer, &total_len, srvprvkey);
+
 	send_data(new_socket_fd, buffer, total_len);
 	
   close(new_socket_fd);

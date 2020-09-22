@@ -36,7 +36,21 @@ openssl pkey -in srvprvkey.pem -pubout -out srvpubkey.pem
 mv -f srvprvkey.pem Server
 mv -f srvpubkey.pem Client
 
-if [[ $INPUT = 3 ]]
+if [[ $INPUT = 1 ]]
+	then
+		cp -f to_send.pdf Server
+elif [[ $INPUT = 2 ]]
+	then
+		cpabe-setup
+		cpabe-keygen -o kevin_priv_key pub_key master_key business_staff strategy_team 'executive_level = 7' 'office = 2362' 'hire_date = '`date +%s`
+    cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
+		mv -f master_key Server
+		cp -f pub_key Server
+		mv -f pub_key Client
+		mv -f kevin_priv_key Client
+		mv -f to_send.pdf.cpabe Server
+		
+elif [[ $INPUT = 3 ]]
 	then
 		openssl genrsa -out cltprvkey.pem 3072
 		openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
@@ -74,8 +88,6 @@ elif [[ $INPUT = 4 ]]
 		mv -f upd_key Server
 
 		#cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
-else
-	cp -f to_send.pdf Server
 fi
 
 chmod 777 -R .

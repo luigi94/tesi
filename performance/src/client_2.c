@@ -9,7 +9,6 @@
 #include <time.h>
 
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <errno.h>	
 
 #include <glib.h>
@@ -33,6 +32,7 @@ char* partial_updates_received = "partial_updates_received";
 char* pub_file = "pub_key";
 char* prv_file = "kevin_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
+char* cltprvkey = "cltprvkey.pem";
 
 void send_username_size(const int socket_fd, const size_t* const restrict username_size){
 	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
@@ -126,12 +126,11 @@ int main(int argc, char *argv[]) {
 	size_t username_size;
 	char* user;
 	
-	unsigned char* partial_updates_buf;
 	unsigned char* ciphertext_buf;
 	unsigned char* data_buf;
-	unsigned long data_size;
 	unsigned long ciphertext_size;
-	uint8_t type;
+	unsigned long data_size;
+
 	bswabe_pub_t* pub;
 	
 	unsigned long pointer;
@@ -200,35 +199,16 @@ int main(int argc, char *argv[]) {
 	
 	/* Get timestamp and check freshness */
 	memcpy((void*)&time_stamp, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
+	pointer += (unsigned long) TIMESTAMP_LEN;
 	check_freshness(now, time_stamp);
 	
-	/* Get response type */
-	pointer += (unsigned long) TIMESTAMP_LEN;
-	memcpy((void*)&type, (void*)(data_buf + pointer), (size_t)TYPE_LEN);
-	fprintf(stdout, "Type is %hhu\n", type);
-	pointer += (unsigned long) TYPE_LEN;
-	
-	if(type == 0){
-		if((partial_updates_buf = (unsigned char*)malloc((size_t)UPDATES_LEN)) == NULL){
-			fprintf(stdout, "Error in allocating memory for the partial updated buffer. Error: %s\n", strerror(errno));
-			exit(1);
-		}
-		memcpy((void*)partial_updates_buf, (void*)(data_buf + pointer), (size_t)UPDATES_LEN);
-		bswabe_update_pub_and_prv_keys_partial(partial_updates_buf, pub_file, prv_file);
-		free(partial_updates_buf);
-		pointer += (unsigned long) UPDATES_LEN;
-		
-	} else if(type != 1){
-		fprintf(stderr, "Unknown response type\n");
-		exit(1);
-	}
-	/* Here type is 0 or 1 */
 	ciphertext_size = data_size - pointer;
 	if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
 		fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	fprintf(stdout, "Ciphertext size: %lu\n", ciphertext_size);
+	
 	memcpy((void*)ciphertext_buf, (void*)(data_buf + pointer), ciphertext_size);
 	
 	free(data_buf);
