@@ -8,9 +8,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
+
+
+#include <sys/stat.h>
 #include <errno.h>
+#include <sys/sendfile.h>
+
+#include <glib.h>
+#include <pbc.h>
+#include <pbc_random.h>
+
 #include <netinet/tcp.h>
 
+#include "bswabe.h"
+#include "common.h"
+#include "private.h"
 #include "util.h"
 
 #define BACKLOG 10
@@ -19,8 +31,13 @@ ssize_t nbytes;
 size_t ret;
 int socket_fd;
 
-char* to_send_file = "to_send.pdf";
-char* prvkey_file_name = "srvprvkey.pem";
+char* ciphertext_file = "to_send.pdf.cpabe";
+char* msk_file = "master_key";
+char* pub_file = "pub_key";
+char* srvprvkey = "srvprvkey.pem";
+char* cltpubkey = "cltpubkey.pem";
+char* decryption_key = "kevin_priv_key";
+char* encrypted_decription_key = "kevin_priv_key.enc";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
@@ -33,63 +50,16 @@ void *pthread_routine(void *arg);
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
 
-void close_socket(const int socket_fd){
-
-	/* TODO PUT THIS FUNCTION IN A SHARED HEADER */
-	
-	struct tcp_info info;
-	unsigned tcp_info_len;
-	unsigned long now;
-	unsigned old;
-	
-	tcp_info_len = (unsigned) sizeof info;
-	
-	if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-		fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-	old = info.tcpi_unacked;
-	now = get_milliseconds();
-	while (info.tcpi_unacked > 0){
-		if((unsigned long)(get_milliseconds() - now) > 1000000UL){
-			fprintf(stdout, "Expired close timeout\n");
-			break;
-		}
-		usleep((useconds_t) 100000);
-		if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-			fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-			close(socket_fd);
-			exit(1);
-		}
-		fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-
-		if(old > info.tcpi_unacked){ /* Some acks has arrived, hence other peer is still alive */
-			now = get_milliseconds();
-		}
-		else if(old < info.tcpi_unacked){
-			fprintf(stderr, "Remaining acks have increased... what is going on?\n");
-		}
-	}
-	
-	if(info.tcpi_unacked > 0){
-		fprintf(stderr, "WARNING - Socket will be closed but there are still %d unaked packets\n", info.tcpi_unacked);
-	}
-	fprintf(stdout, "Closing socket...\n");
-	close(socket_fd);
-}
-
 void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
 	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(size_t)){
 		fprintf(stderr, "Username size not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 }
@@ -97,12 +67,12 @@ void receive_username(const int new_socket_fd, char* const restrict user, const 
 	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((size_t) nbytes < username_size){
 		fprintf(stderr, "Username not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 }
@@ -115,12 +85,12 @@ void send_data(const int new_socket_fd, const unsigned char* const restrict to_s
 	nbytes = send(new_socket_fd, (void*)to_send, (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending firmware updates size on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 	if((size_t) nbytes < LENGTH_FIELD_LEN){
 		fprintf(stdout, "WARNING - Firmware updates size not entirely sent on socket %d\n", new_socket_fd);
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 	
@@ -132,33 +102,37 @@ void send_data(const int new_socket_fd, const unsigned char* const restrict to_s
 		fprintf(stdout, "Sent %ld bytes on expected %lu\n", nbytes, count);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in sending firmware updates chunk on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-			close_socket(new_socket_fd);
+			close(new_socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - Firmware updates chunk not entirely sent on socket %d\n", new_socket_fd);
+			//close(new_socket_fd);
+			//exit(1);
 		}
 		remaining_data -= nbytes;
 		offset += (unsigned long)nbytes;
 	}
 }
 
-void make_buffer_and_sign(const char* const restrict to_send_file_name, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
-  FILE* f_cleartext;
+void make_buffer_and_sign(const char* const restrict ciphertext_file, const char* const restrict enc_key_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
+  FILE* f_ciphertext;
+  FILE* f_key;
   
-  unsigned long cleartext_len;
+  unsigned long ciphertext_len;
 	unsigned long time_stamp;
 	unsigned char* sgnt_buf;
 	unsigned long sgnt_size;
+	unsigned long key_len;
 	
 	unsigned long pointer;
 	
 	/*
-	.-----------------------------------------------.
-	| TOTAL LEN | TIMESTAMP | CLEARTEXT | SIGNATURE |
-	|  8 BYTES  |  8 BYTES  |  VARIABLE | 512 BYTES |
-	|           |           |	 	SIZE    |           |
-	'-----------------------------------------------'
+	.-----------------------------------------------------------------------------.
+	| TOTAL LEN | TIMESTAMP |  KEY LEN  | DECRYPTION KEY | CIPHERTEXT | SIGNATURE |
+	|  8 BYTES  |  8 BYTES  |  8 BYTES  |    VARIABLE    |  VARIABLE  | 512 BYTES |
+	|           |           |           |      SIZE      |		SIZE    |           |
+	'-----------------------------------------------------------------------------'
 	*/
 	
 	/* Allocating memory for total len (it will be updated at the end of this function) */
@@ -178,28 +152,65 @@ void make_buffer_and_sign(const char* const restrict to_send_file_name, unsigned
 	}
 	fprintf(stdout, "Appended timestamp %lu\n", time_stamp);
 	memcpy((void*)(*buffer + pointer), (void*)&time_stamp, (size_t)TIMESTAMP_LEN);
+	
+	/* Adding key and key len if needed but first allocating memory for key len
+	since this is needed in both cases */
+	pointer = *total_len;
+	*total_len += (unsigned long)LENGTH_FIELD_LEN;
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in reallocating memeory for key length. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	if(enc_key_file != NULL){
+		if((f_key = fopen(enc_key_file, "r")) == NULL){
+			fprintf(stderr, "Error in opening %s. Error: %s\n", enc_key_file, strerror(errno));
+			exit(1);
+		}
+		fseek(f_key, 0UL, SEEK_END);
+		key_len = (unsigned long)ftell(f_key);
+		rewind(f_key);
+		fprintf(stdout, "Encrypted key length (from main()) is %lu\n", key_len);
+		
+		/* Adding key len */
+		memcpy((void*)(*buffer + pointer), (void*)&key_len, (size_t)LENGTH_FIELD_LEN);
+	
+		pointer = *total_len;
+		*total_len += key_len;
+		if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+			fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		if(fread((void*)(*buffer + pointer), 1, key_len, f_key) < key_len){
+			fprintf(stderr, "Error while reading file '%s'. Error: %s\n", enc_key_file, strerror(errno));
+			exit(1);
+		}
+		fclose(f_key);
+	} else{
+		key_len = 0UL;
+		memcpy((void*)(*buffer + pointer), (void*)&key_len, (size_t)TYPE_LEN);
+	}
   
-  /* Adding cleartext */
-	if((f_cleartext = fopen(to_send_file_name, "r")) == NULL){
-		fprintf(stderr, "Error in opening %s. Error: %s\n", to_send_file_name, strerror(errno));
+  /* Adding ciphertext */
+	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", ciphertext_file, strerror(errno));
 		exit(1);
 	}
 	
-	fseek(f_cleartext, 0, SEEK_END);
-	cleartext_len = ftell(f_cleartext);
-	rewind(f_cleartext);
+	fseek(f_ciphertext, 0, SEEK_END);
+	ciphertext_len = ftell(f_ciphertext);
+	rewind(f_ciphertext);
 	
 	pointer = *total_len;
-	*total_len += cleartext_len;
+	*total_len += ciphertext_len;
 	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-		fprintf(stderr, "Error in reallocating memeory. Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in reallocating memory for ciphertext. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	if(fread((void*)(*buffer + pointer), 1, cleartext_len, f_cleartext) < cleartext_len){
-		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", to_send_file_name, strerror(errno));
+	if(fread((void*)(*buffer + pointer), 1, ciphertext_len, f_ciphertext) < ciphertext_len){
+		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", ciphertext_file, strerror(errno));
 		exit(1);
 	}
-	fclose(f_cleartext);
+	fclose(f_ciphertext);
 	
 	pointer = *total_len;
 	*total_len += (unsigned long) EXP_SGNT_SIZE;
@@ -303,7 +314,6 @@ int main(int argc, char *argv[]) {
 			free(pthread_arg);
 			continue;
 		}
-		
 		fprintf(stdout, "New socket: %d\n", new_socket_fd);
 
 		/* Initialise pthread argument. */
@@ -332,15 +342,37 @@ void *pthread_routine(void *arg) {
   receive_username_size(new_socket_fd, &username_size);
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close_socket(new_socket_fd);
+		close(new_socket_fd);
 		exit(1);
 	}
 	
-	make_buffer_and_sign(to_send_file, &buffer, &total_len, prvkey_file_name);
-
+	receive_username(new_socket_fd, user, username_size);
+	
+	/* TODO
+		LOGIC FOR VERSION CHECKING GOES HERE
+		ADDITIONALLY, SOME KIND OF ROUTINE SHOULD CARE UPDATING PERIODICALLY DECRIPTION KEY AND ENCRYPT WITH RSA
+	*/
+	/* This two line of codes have to be executed by another entity, not here */
+	seal(cltpubkey, decryption_key);
+	unsigned tmp_flag = 0;
+	
+	if(tmp_flag == 0){
+	
+		make_buffer_and_sign(ciphertext_file, encrypted_decription_key, &buffer, &total_len, srvprvkey);
+	
+	}else if(tmp_flag == 1){
+		
+		make_buffer_and_sign(ciphertext_file, NULL, &buffer, &total_len, srvprvkey);
+	
+	}else{
+		fprintf(stderr, "Unknown response type\n");
+		close(new_socket_fd);
+		exit(1);
+	}
+	
 	send_data(new_socket_fd, buffer, total_len);
 	
-  close_socket(new_socket_fd);
+  close(new_socket_fd);
   free(user);
   free(buffer);
 	
@@ -349,6 +381,6 @@ void *pthread_routine(void *arg) {
 
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, " <-- Signal handler invoked\n");
-	close_socket(socket_fd);
+	close(socket_fd);
   exit(1);
 }
