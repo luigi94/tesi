@@ -30,21 +30,25 @@ $(SRC)/util.o: $(SRC)/util.c $(SRC)/util.h
 	@echo "Compiling util.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
+$(SRC)/db.o: $(SRC)/db.c $(SRC)/db.h
+	@echo "Compiling db.c"
+	$(CC) -c -o $@ $< $(CFLAGS)
+	
 $(SRC)/client.o: $(SRC)/$(client) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h
 	@echo "Compiling client.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-$(SRC)/server.o: $(SRC)/$(server) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h
+$(SRC)/server.o: $(SRC)/$(server) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/db.h
 	@echo "Compiling server.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
 Client/client: $(OBJS) $(SRC)/client.o | Client
 	@echo "Creating client executable"
-	$(CC) -o $@ $^ $(LDFLAGS) 
+	$(CC) -o $@ $^ $(LDFLAGS)
 	
-Server/server: $(OBJS) $(SRC)/server.o | Server
+Server/server: $(OBJS) $(SRC)/db.o $(SRC)/server.o | Server
 	 @echo "Creating server executable"
-	$(CC) -o $@ $^ $(LDFLAGS) -pthread
+	$(CC) -o $@ $^ $(LDFLAGS) -lsqlite3 -pthread
 	
 all: $(TARGETS)
 

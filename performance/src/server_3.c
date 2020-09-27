@@ -1,3 +1,4 @@
+#include <sqlite3.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
@@ -9,10 +10,8 @@
 #include <unistd.h>
 #include <time.h>
 
-
 #include <sys/stat.h>
 #include <errno.h>
-#include <sys/sendfile.h>
 
 #include <glib.h>
 #include <pbc.h>
@@ -24,6 +23,8 @@
 #include "common.h"
 #include "private.h"
 #include "util.h"
+#include "db.h"
+#include "policy_lang.h"
 
 #define BACKLOG 10
 
@@ -31,21 +32,21 @@ ssize_t nbytes;
 size_t ret;
 int socket_fd;
 
-char* ciphertext_file = "to_send.pdf.cpabe";
+sqlite3* db = NULL;
+
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* srvprvkey = "srvprvkey.pem";
-char* cltpubkey = "cltpubkey.pem";
-char* decryption_key = "kevin_priv_key";
-char* encrypted_decription_key = "kevin_priv_key.enc";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
     struct sockaddr_in client_address;
+    pthread_mutex_t* mutex;
 } pthread_arg_t;
 
 /* Thread routine to serve connection to client. */
 void *pthread_routine(void *arg);
+void *key_authority_routine(void *arg);
 
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
@@ -169,7 +170,6 @@ void make_buffer_and_sign(const char* const restrict ciphertext_file, const char
 		fseek(f_key, 0UL, SEEK_END);
 		key_len = (unsigned long)ftell(f_key);
 		rewind(f_key);
-		fprintf(stdout, "Encrypted key length (from main()) is %lu\n", key_len);
 		
 		/* Adding key len */
 		memcpy((void*)(*buffer + pointer), (void*)&key_len, (size_t)LENGTH_FIELD_LEN);
@@ -187,7 +187,7 @@ void make_buffer_and_sign(const char* const restrict ciphertext_file, const char
 		fclose(f_key);
 	} else{
 		key_len = 0UL;
-		memcpy((void*)(*buffer + pointer), (void*)&key_len, (size_t)TYPE_LEN);
+		memcpy((void*)(*buffer + pointer), (void*)&key_len, (size_t)LENGTH_FIELD_LEN);
 	}
   
   /* Adding ciphertext */
@@ -235,6 +235,23 @@ void make_buffer_and_sign(const char* const restrict ciphertext_file, const char
 	fprintf(stdout, "Total length to send: %lu\n", *total_len);
 }
 
+void initialize_key_authority_thread(pthread_mutex_t* mutex){
+	pthread_attr_t pthread_attr;
+	pthread_t pthread;
+	if (pthread_attr_init(&pthread_attr) != 0) {
+		perror("pthread_attr_init");
+		exit(1);
+	}
+	if (pthread_attr_setdetachstate(&pthread_attr, PTHREAD_CREATE_DETACHED) != 0) {
+		perror("pthread_attr_setdetachstate");
+		exit(1);
+	}
+	if (pthread_create(&pthread, &pthread_attr, key_authority_routine, (void*)mutex) != 0) {
+		perror("pthread_create");
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[]) {
 	int port, new_socket_fd;
 	struct sockaddr_in address;
@@ -242,13 +259,23 @@ int main(int argc, char *argv[]) {
 	pthread_arg_t *pthread_arg;
 	pthread_t pthread;
 	socklen_t client_address_len;
+	pthread_mutex_t mutex;
 
 	if(argc != 2){
 		fprintf(stderr, "Usage: ./server PORT\n");
 		exit(1);
 	}
 	port = atoi(argv[1]);
-
+	
+	/* Initialize database */
+	initialize_db(db);
+	
+	if(pthread_mutex_init(&mutex, NULL) != 0){
+		fprintf(stderr, "Error in mutex initialization\n");
+		exit(1);
+	}
+	initialize_key_authority_thread(&mutex);
+	
 	/* Initialise IPv4 address. */
 	memset(&address, 0, sizeof address);
 	address.sin_family = AF_INET;
@@ -318,6 +345,7 @@ int main(int argc, char *argv[]) {
 
 		/* Initialise pthread argument. */
 		pthread_arg->new_socket_fd = new_socket_fd;
+		pthread_arg->mutex = &mutex;
 
 		/* Create thread to serve connection to client. */
 		if (pthread_create(&pthread, &pthread_attr, pthread_routine, (void *)pthread_arg) != 0) {
@@ -332,13 +360,15 @@ int main(int argc, char *argv[]) {
 void *pthread_routine(void *arg) {
 	pthread_arg_t *pthread_arg = (pthread_arg_t *)arg;
   int new_socket_fd = pthread_arg->new_socket_fd;
-  struct sockaddr_in client_address = pthread_arg->client_address;
+  //struct sockaddr_in client_address = pthread_arg->client_address;
+  pthread_mutex_t* mutex = pthread_arg->mutex;
   free(arg);
 	char* user;
 	size_t username_size;
   unsigned char* buffer;
   unsigned long total_len;
- 	
+  
+  user_info* ui = NULL;
   receive_username_size(new_socket_fd, &username_size);
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
@@ -348,35 +378,127 @@ void *pthread_routine(void *arg) {
 	
 	receive_username(new_socket_fd, user, username_size);
 	
-	/* TODO
-		LOGIC FOR VERSION CHECKING GOES HERE
-		ADDITIONALLY, SOME KIND OF ROUTINE SHOULD CARE UPDATING PERIODICALLY DECRIPTION KEY AND ENCRYPT WITH RSA
-	*/
-	/* This two line of codes have to be executed by another entity, not here */
-	seal(cltpubkey, decryption_key);
-	unsigned tmp_flag = 0;
+	pthread_mutex_lock(mutex);
 	
-	if(tmp_flag == 0){
+	open_db(&db);
 	
-		make_buffer_and_sign(ciphertext_file, encrypted_decription_key, &buffer, &total_len, srvprvkey);
+	get_user_info(db, user, &ui);
 	
-	}else if(tmp_flag == 1){
-		
-		make_buffer_and_sign(ciphertext_file, NULL, &buffer, &total_len, srvprvkey);
+	if(ui == NULL){
+		fprintf(stderr, "User %s not found\n", user);
+		close_db(db);
+		return NULL;
+	}
+	
+	fprintf(stdout, "Encrypted decryption key name: %s, Encrypted file name: %s ", ui->encryped_decryption_key_name, ui->encrypted_file_name);
+	fprintf(stdout, " Key version: %u, Updated key version: %u, Ciphertext version: %u, Updateted ciphertext version: %u\n", ui->key_version, ui->updated_key_version, ui->ciphertext_version, ui->updated_ciphertext_version);
+	
+	if(ui->key_version < ui->updated_key_version){
+		fprintf(stdout, "User %s has version %u, updated version is %u, hence proceeding to send the new key and the new ciphertext\n", user, ui->key_version, ui->updated_key_version);
+		make_buffer_and_sign(ui->encrypted_file_name, ui->encryped_decryption_key_name, &buffer, &total_len, srvprvkey);
+		if(!update_version(db, user, KEY_VERSION, ui->updated_key_version)){
+			fprintf(stderr, "Could not udate database upon receiving a request from a old-versioned client\n");
+			pthread_mutex_unlock(mutex);
+			exit(1);
+		}
+	
+	}else if(ui->key_version == ui->updated_key_version){
+		fprintf(stdout, "User %s has version %u, updated version is %u, hence there is no need to send the new key\n", user, ui->key_version, ui->updated_key_version);
+		make_buffer_and_sign(ui->encrypted_file_name, NULL, &buffer, &total_len, srvprvkey);
 	
 	}else{
-		fprintf(stderr, "Unknown response type\n");
+		fprintf(stderr, "User %s has version %u, updated version is %u and this is not possible\n", user, ui->key_version, ui->updated_key_version);
 		close(new_socket_fd);
+		close_db(db);
+		pthread_mutex_unlock(mutex);
 		exit(1);
 	}
 	
 	send_data(new_socket_fd, buffer, total_len);
-	
   close(new_socket_fd);
+	close_db(db);
+	pthread_mutex_unlock(mutex); // Is it necessary to pot it here?
+
+  free(ui);
   free(user);
   free(buffer);
 	
   return NULL;
+}
+
+void *key_authority_routine(void* arg){
+
+	pthread_mutex_t* mutex;
+	char* user = "kevin"; // This thread takes care only of kevin
+	char* policy = "Audi_v_0 and year_v_0 = 2017";
+	char* to_encrypt = "to_send.pdf";
+	char* cltpubkey = "cltpubkey.pem";
+	char* new_attribute_set;
+	char* new_regex_version_buffer;
+	char* old_regex_version_buffer;
+	uint32_t new_version;
+	user_info* ui = NULL;
+	bswabe_pub_t* pub;
+	
+	mutex = (pthread_mutex_t*)arg;	
+	
+	while(TRUE){
+		pthread_mutex_lock(mutex);
+		
+		open_db(&db);
+		fprintf(stdout, "Fin qui tutto bene\n");
+		get_user_info(db, user, &ui);
+		fprintf(stdout, "Fin qui tutto bene\n");
+		if(ui == NULL){
+			pthread_mutex_unlock(mutex);
+			close_db(db);
+			return 0;
+		}
+		
+		fprintf(stdout, "Encrypted decryption key name: %s, Encrypted file name: %s ", ui->encryped_decryption_key_name, ui->encrypted_file_name);
+		fprintf(stdout, " Key version: %u, Updated key version: %u, Ciphertext version: %u, Updateted ciphertext version: %u\n", ui->key_version, ui->updated_key_version, ui->ciphertext_version, ui->updated_ciphertext_version);
+		fprintf(stdout, "Current attribute set: %s\n", ui->current_attribute_set);
+		
+		// Check whether attribute set version is consistent
+		get_policy_or_attribute_version(ui->current_attribute_set, VERSION_REGEX, &new_version);
+		if(new_version != ui->updated_key_version){
+			fprintf(stderr, "Database inconsistent\n");
+			pthread_mutex_unlock(mutex);
+			exit(1);
+		}
+		
+		make_version_regex(new_version, &old_regex_version_buffer);
+		new_version++;
+		make_version_regex(new_version, &new_regex_version_buffer);
+		fprintf(stdout, "New version buffer: %s (%lu bytes)\n", new_regex_version_buffer, strlen(new_regex_version_buffer));
+		fprintf(stdout, "Old version buffer: %s (%lu bytes)\n", old_regex_version_buffer, strlen(old_regex_version_buffer));
+		
+		new_attribute_set = str_replace(ui->current_attribute_set, old_regex_version_buffer, new_regex_version_buffer);
+		fprintf(stdout, "Updated attribute set: %s (%lu bytes)\n", new_attribute_set, strlen(new_attribute_set));
+		
+		if(!update_attribute_set(db, user, new_attribute_set) || !update_version(db, user, UPDATED_KEY_VERSION, new_version)){
+			fprintf(stderr, "Could not udate database\n");
+			pthread_mutex_unlock(mutex);
+			exit(1);
+		}
+		
+		pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+		
+		bswabe_keygen_bis(new_attribute_set, msk_file, pub, ui->encryped_decryption_key_name); // Use the same file also for clear decryption key befor it is encrypted
+		seal(cltpubkey, ui->encryped_decryption_key_name); // cltpubkey may be put into database as well
+		
+		fprintf(stdout, "Old policy: %s (%lu bytes)\n", policy, strlen(policy));
+		policy = str_replace(policy, old_regex_version_buffer, new_regex_version_buffer);
+		fprintf(stdout, "Updated policy: %s (%lu bytes)\n", policy, strlen(policy));
+  	bswabe_enc(pub, to_encrypt, ui->encrypted_file_name, parse_policy_lang(policy), 1);
+		
+		close_db(db);
+		
+		pthread_mutex_unlock(mutex);
+		
+		fprintf(stdout, "Key Authority Thread sleeps\n");
+		usleep(10000000);
+	}
 }
 
 void signal_handler() { // Explicit clean-up

@@ -130,7 +130,6 @@ void verify(const unsigned char* const restrict file_buf, unsigned long* const r
 }
 
 void seal(const char* const restrict pubkey_file_name, const char* const restrict clear_file_name){
-	/* WARNING: This function doesn't delete nor overwrites the clearbuf */
 	int ret;
 	
 	FILE* pubkey_file;
@@ -156,8 +155,6 @@ void seal(const char* const restrict pubkey_file_name, const char* const restric
 	int nc; // bytes encrypted at each chunk
 	int nctot; // total encrypted bytes
 	int cphr_size;
-	
-	char* cphr_file_name;
 
 	// load the peer's public key:
 	if((pubkey_file = fopen(pubkey_file_name, "rb")) == NULL){
@@ -255,14 +252,7 @@ void seal(const char* const restrict pubkey_file_name, const char* const restric
 	memset(clear_buf, 0, clear_size);
 	free(clear_buf);
 	
-	if((cphr_file_name = (char*)calloc(1UL, strlen(clear_file_name) + strlen(".enc") + 1UL)) == NULL){
-		fprintf(stderr, "Error in allocating memory for ciphertext file name. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	memcpy((void*)cphr_file_name, (void*)clear_file_name, (size_t)strlen(clear_file_name));
-	strcat(cphr_file_name, ".enc");
-	
-	if((cphr_file = fopen(cphr_file_name, "wb")) == NULL){
+	if((cphr_file = fopen(clear_file_name, "wb")) == NULL){
 		fprintf(stderr, "Error: cannot open file '%s' (no permissions?)\n", clear_file_name);
 		exit(1);
 	}
@@ -284,7 +274,6 @@ void seal(const char* const restrict pubkey_file_name, const char* const restric
 	}
 	memset((void*)cphr_buf, 0, (size_t) cphr_size);
 	free(cphr_buf);
-	free(cphr_file_name);
 	fclose(cphr_file);
 	
 	EVP_PKEY_free(pubkey);

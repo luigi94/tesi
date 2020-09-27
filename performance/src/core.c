@@ -246,7 +246,12 @@ void bswabe_keygen( bswabe_pub_t* pub, char* msk_file, char* out_file, char* par
 	element_clear(beta_inv);
 	
 	spit_file(out_file, bswabe_prv_serialize(prv), 1);
-	spit_file(partial_updates_file, bswabe_build_partial_updates_and_serialize(msk, prv, pub), 1);
+	
+	if(partial_updates_file != NULL)
+		spit_file(partial_updates_file, bswabe_build_partial_updates_and_serialize(msk, prv, pub), 1);
+		
+	free(msk);
+	free(prv);
 }
 
 bswabe_policy_t*
