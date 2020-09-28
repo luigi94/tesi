@@ -17,6 +17,8 @@
 #include "policy_lang.h"
 #include "db.h"
 
+#define UNUSED(x) (void)(x)
+
 void open_db(sqlite3** const restrict db){
 	if (sqlite3_open(DATABASE, &(*db)) != SQLITE_OK) {
 		fprintf(stderr, "Cannot open database. Error: %s\n", sqlite3_errmsg(*db));
@@ -38,87 +40,93 @@ void check_error(const int rc, sqlite3* db) {
 	}
 }
 
+static int callback(void *ui, int argc, char **argv, char **azColName) {
+	
+			fprintf(stdout, "Fin qui tutto bene 1\n");
+	size_t size;
+	sqlite3_int64 tmp;
+	
+	size = strlen(argv[0]) > (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN ? (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN : strlen(argv[0]);
+	fprintf(stdout, "Look at here: %s (%lu bytes)\n", argv[0], strlen(argv[0]));
+	memcpy((void*)((user_info*)ui)->encryped_decryption_key_name, (void*)argv[0], size);
+	((user_info*)ui)->encryped_decryption_key_name[size] = '\0';
+	
+	size = strlen(argv[1]) > (size_t) MAX_FILE_NAME_LEN ? (size_t) MAX_FILE_NAME_LEN : strlen(argv[1]);
+	fprintf(stdout, "LOok at here: %s (%lu bytes)\n", argv[1], strlen(argv[1]));
+	memcpy((void*)((user_info*)ui)->encrypted_file_name, (void*)argv[1], size);
+	((user_info*)ui)->encrypted_file_name[size] = '\0';
+	
+	size = strlen(argv[2]) > (size_t) MAX_ATTRIBUTE_SET_LEN ? (size_t) MAX_ATTRIBUTE_SET_LEN : strlen(argv[2]);
+	fprintf(stdout, "LOok at here: %s (%lu bytes)\n", argv[2], strlen(argv[2]));
+	memcpy((void*)((user_info*)ui)->current_attribute_set, (void*)argv[2], size);
+	((user_info*)ui)->current_attribute_set[size] = '\0';
+	
+  tmp = strtoull(argv[3], NULL, 0);
+	if(tmp > (sqlite3_int64)UINT_MAX){
+		free(ui);
+		exit(1);
+	} 
+	((user_info*)ui)->key_version = (uint32_t)tmp;
+	
+  tmp = strtoull(argv[4], NULL, 0);
+	if(tmp > (sqlite3_int64)UINT_MAX){
+		free(ui);
+		exit(1);
+	} 
+	((user_info*)ui)->updated_key_version = (uint32_t)tmp;
+	
+  tmp = strtoull(argv[5], NULL, 0);
+	if(tmp > (sqlite3_int64)UINT_MAX){
+		free(ui);
+		exit(1);
+	} 
+	((user_info*)ui)->ciphertext_version = (uint32_t)tmp;
+	
+  tmp = strtoull(argv[6], NULL, 0);
+	if(tmp > (sqlite3_int64)UINT_MAX){
+		free(ui);
+		exit(1);
+	} 
+	((user_info*)ui)->updated_ciphertext_version = (uint32_t)tmp;
+
+	return 0;
+}
+
 void get_user_info(sqlite3* db, const char* const restrict user, user_info* restrict* const restrict ui){
+	char *err_msg = 0;
+	char *sql;
 	int rc;
-	sqlite3_stmt *res;
-	char * query = "SELECT encrypted_decryption_key, encrypted_file, current_attribute_set, key_version, updated_key_version, ciphertext_version, updated_ciphertext_version FROM Users WHERE User = ?;";
-	rc = sqlite3_prepare_v2(db, query, -1, &res, NULL);
-	check_error(rc, db);
-	rc = sqlite3_bind_text(res, 1, user, -1, NULL);
-	check_error(rc, db);
-	rc = sqlite3_step(res);
-  if (rc == SQLITE_ROW) {
-		if(*ui == NULL && (*ui = (user_info*)malloc(sizeof(user_info))) == NULL){
-			fprintf(stderr, "Error in allocating memory for user_info structure. Error: %s\n", strerror(errno));
-			exit(1);
-		}
-  	// Getting encrypted_decryption_key_name
-		const unsigned char* tmp1 = sqlite3_column_text(res, 0);
-		size_t tmp1_len = (size_t)(strlen((char*)tmp1) + 1);
-  	memcpy((void*)(*ui)->encryped_decryption_key_name, (void*)tmp1, (size_t)(tmp1_len > MAX_ENCRYPTED_DEC_KEY_NAME_LEN ? MAX_ENCRYPTED_DEC_KEY_NAME_LEN : tmp1_len));
-  	
-  	// Getting encrypted_file_name
-		const unsigned char* tmp2 = sqlite3_column_text(res, 1);
-		size_t tmp2_len = (size_t)(strlen((char*)tmp2) + 1);
-  	memcpy((void*)(*ui)->encrypted_file_name, (void*)tmp2, (size_t)(tmp2_len > MAX_FILE_NAME_LEN ? MAX_FILE_NAME_LEN : tmp2_len));
-  	
-		const unsigned char* tmp3 = sqlite3_column_text(res, 2);
-		size_t tmp3_len = (size_t)(strlen((char*)tmp3) + 1);
-  	memcpy((void*)(*ui)->current_attribute_set, (void*)tmp3, (size_t)(tmp3_len > MAX_ATTRIBUTE_SET_LEN ? MAX_ATTRIBUTE_SET_LEN : tmp3_len));
-  	
-  	// Getting user's key_version
-  	sqlite3_int64 tmp4 = sqlite3_column_int(res, 3);
-  	// Since I will perform a cast to a shorter-length type I check if the result is valid for the conversion
-  	if(tmp4 > (sqlite3_int64)UINT_MAX){
-  		free(*ui);
-  		exit(1);
-  	}
-  	(*ui)->key_version = (uint32_t)tmp4;
-  	
-  	// Getting last updated key version
-  	sqlite3_int64 tmp5 = sqlite3_column_int(res, 4);
-  	if(tmp5 > (sqlite3_int64)UINT_MAX){
-  		free(*ui);
-  		exit(1);
-  	} 
-  	(*ui)->updated_key_version = (uint32_t)tmp5;
-  	
-  	// Getting user's ciphertext version
-  	sqlite3_int64 tmp6 = sqlite3_column_int(res, 5);
-  	if(tmp6 > (sqlite3_int64)UINT_MAX){
-  		free(*ui);
-  		exit(1);
-  	}
-  	(*ui)->ciphertext_version = (uint32_t)tmp6;
-  	
-  	// Getting last updated ciphertext version
-  	sqlite3_int64 tmp7 = sqlite3_column_int(res, 6);
-  	if(tmp7 > (sqlite3_int64)UINT_MAX){
-  		free(*ui);
-  		exit(1);
-  	} 
-  	(*ui)->updated_ciphertext_version = (uint32_t)tmp7;
-  	
-		sqlite3_reset(res);
-		sqlite3_clear_bindings(res);
-  	
-	} else if( rc == SQLITE_DONE ){
-		*ui = NULL;
-		fprintf(stderr, "Query returned no result\n");
-	}else{
-		fprintf(stderr, "Some error occurred during sqlite3_step(). Returned %d\n", rc);
-		sqlite3_finalize(res);
-		free(*ui);
+	
+	sql = sqlite3_mprintf("SELECT encrypted_decryption_key, encrypted_file, current_attribute_set, key_version, updated_key_version, ciphertext_version, updated_ciphertext_version FROM Users WHERE User = '%s';", user);
+	fprintf(stdout, "Query: %s (%lu bytes)\n", sql, strlen(sql));
+			fprintf(stdout, "Fin qui tutto bene\n");
+	if((*ui = (user_info*)malloc(sizeof(user_info))) == NULL){
+		fprintf(stderr, "Error in allocating memory for user info. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	sqlite3_finalize(res);
+			fprintf(stdout, "Fin qui tutto bene\n");
+	rc = sqlite3_exec(db, sql, callback, (void*)*ui, &err_msg);
+	check_error(rc, db);
+			fprintf(stdout, "Fin qui tutto bene\n");
+
+	if (rc != SQLITE_OK ){
+		fprintf(stderr, "Failed to select data\n");
+		fprintf(stderr, "SQL error: %s\n", err_msg);
+		sqlite3_free(err_msg);
+		sqlite3_free(sql);
+		sqlite3_close(db);
+		exit(1);
+	}
+			fprintf(stdout, "Fin qui tutto bene\n");
+	sqlite3_free(err_msg);
+		sqlite3_free(sql);
 }
 
 void initialize_db(sqlite3* db){
 	char *err_msg = 0;
 
 	char *sql = "DROP TABLE IF EXISTS Users;"
-		"CREATE TABLE Users(User CHAR(32) NOT NULL PRIMARY KEY, encrypted_decryption_key TEXT NOT NULL, encrypted_file CHAR(32) NOT NULL, current_attribute_set CHAR(256) NOT NULL, "
+		"CREATE TABLE Users(User CHAR(32) NOT NULL PRIMARY KEY, encrypted_decryption_key CHAR(32) NOT NULL, encrypted_file CHAR(32) NOT NULL, current_attribute_set CHAR(256) NOT NULL, "
 		"key_version INT UNISGNED NOT NULL, updated_key_version INT UNSIGNED NOT NULL, ciphertext_version INT UNISGNED NOT NULL, updated_ciphertext_version INT UNSIGNED NOT NULL);" 
 		"INSERT INTO Users VALUES(\"kevin\", \"kevin_priv_key.enc\",\"to_send.pdf.cpabe\", \"Audi_v_0 'year_v_0 = 2017' X5_v_0 'ECU_1_v_0 = 324' 'ECU_2_v_0 = 215' 'ECU_3_v_0 = 123'\", 0, 0, 0, 0);";
 		

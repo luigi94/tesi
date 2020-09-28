@@ -35,7 +35,7 @@ char* pubkey_file_name = "srvpubkey.pem";
 char* cltprvkey = "cltprvkey.pem";
 
 void send_username_size(const int socket_fd, const size_t* const restrict username_size){
-	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
+	nbytes = send(socket_fd, (void*)&(*username_size), (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
 		close(socket_fd);

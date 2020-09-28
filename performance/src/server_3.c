@@ -52,7 +52,7 @@ void *key_authority_routine(void *arg);
 void signal_handler();
 
 void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
-	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
+	nbytes = recv(new_socket_fd, (void*)&(*username_size), (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 		close(new_socket_fd);
@@ -65,7 +65,7 @@ void receive_username_size(const int new_socket_fd, size_t* const restrict usern
 	}
 }
 void receive_username(const int new_socket_fd, char* const restrict user, const size_t username_size){
-	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
+	nbytes = recv(new_socket_fd, (void*)user, username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 		close(new_socket_fd);
@@ -377,11 +377,15 @@ void *pthread_routine(void *arg) {
 	}
 	
 	receive_username(new_socket_fd, user, username_size);
+	user[username_size] = '\0';
+	
+	fprintf(stdout, "User is %s (%lu bytes, size %lu)\n", user, strlen(user), username_size);
 	
 	pthread_mutex_lock(mutex);
 	
 	open_db(&db);
 	
+	fprintf(stdout, "Getting user info...\n");
 	get_user_info(db, user, &ui);
 	
 	if(ui == NULL){
@@ -446,9 +450,8 @@ void *key_authority_routine(void* arg){
 		pthread_mutex_lock(mutex);
 		
 		open_db(&db);
-		fprintf(stdout, "Fin qui tutto bene\n");
 		get_user_info(db, user, &ui);
-		fprintf(stdout, "Fin qui tutto bene\n");
+		
 		if(ui == NULL){
 			pthread_mutex_unlock(mutex);
 			close_db(db);
