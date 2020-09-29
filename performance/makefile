@@ -1,4 +1,4 @@
-OBJS = ./src/common.o ./src/core.o ./src/misc.o ./src/policy_lang.o ./src/util.o
+OBJS = ./src/common.o ./src/core.o ./src/misc.o ./src/policy_lang.o ./src/util.o ./src/shared.o
 
 CC = gcc
 
@@ -34,11 +34,15 @@ $(SRC)/db.o: $(SRC)/db.c $(SRC)/db.h
 	@echo "Compiling db.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-$(SRC)/client.o: $(SRC)/$(client) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h
+$(SRC)/shared.o: $(SRC)/shared.c $(SRC)/shared.h
+	@echo "Compiling shared.c"
+	$(CC) -c -o $@ $< $(CFLAGS)
+	
+$(SRC)/client.o: $(SRC)/$(client) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
 	@echo "Compiling client.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-$(SRC)/server.o: $(SRC)/$(server) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/db.h
+$(SRC)/server.o: $(SRC)/$(server) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/db.h $(SRC)/shared.h
 	@echo "Compiling server.c"
 	$(CC) -c -o $@ $< $(CFLAGS)
 	

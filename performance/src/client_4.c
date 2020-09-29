@@ -2,24 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <errno.h>
-#include <time.h>
-
-#include <sys/stat.h>
 #include <errno.h>	
-
 #include <glib.h>
 #include <pbc.h>
-#include <pbc_random.h>
 
 #include "bswabe.h"
 #include "common.h"
 #include "private.h"
 
 #include "util.h"
+#include "shared.h"
 
 #define SERVER_NAME_LEN_MAX 255
 #define MAX_USER_LENGTH 64
@@ -34,15 +28,15 @@ char* prv_file = "kevin_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
 
 void send_username_size(const int socket_fd, const size_t* const restrict username_size){
-	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
+	nbytes = send(socket_fd, (void*)&(*username_size), (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(size_t)){
 		fprintf(stderr, "Username size not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 }
@@ -50,12 +44,12 @@ void send_username(const int socket_fd, const char* const restrict user, const s
 	nbytes = send(socket_fd, (void*)user, username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < username_size){
 		fprintf(stderr, "Username not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 }
@@ -67,12 +61,12 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 	fprintf(stdout, "Received %ld bytes on socket %d for data size\n", nbytes, socket_fd);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 	if(nbytes < 8){
 		fprintf(stderr, "File size not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 	
@@ -92,7 +86,7 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
-			close(socket_fd);
+			close_socket(socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
@@ -150,7 +144,7 @@ int main(int argc, char *argv[]) {
 	
 	if((user = (char*)malloc(MAX_USER_LENGTH)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 	strncpy(user, argv[3], MAX_USER_LENGTH);
@@ -170,7 +164,7 @@ int main(int argc, char *argv[]) {
 	/* Create TCP socket. */
 	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
-		close(socket_fd);
+		close_socket(socket_fd);
 		exit(1);
 	}
 
@@ -187,7 +181,7 @@ int main(int argc, char *argv[]) {
 	recv_data(socket_fd, &data_buf, &data_size);
 	
 	fprintf(stdout, "Closing socket\n");
-	close(socket_fd);
+	close_socket(socket_fd);
 	
 	/* I take the current time_stamp before the signature verification 
 	because this procedure may take a long time */
@@ -249,6 +243,6 @@ int main(int argc, char *argv[]) {
 }
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, "Signal handler invoked\n");
-	close(socket_fd);
+	close_socket(socket_fd);
   exit(1);
 }

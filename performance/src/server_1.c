@@ -5,18 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <time.h>
 #include <errno.h>
-#include <netinet/tcp.h>
 
 #include "util.h"
+#include "shared.h"
 
 #define BACKLOG 10
 
 ssize_t nbytes;
-size_t ret;
 int socket_fd;
 
 char* to_send_file = "to_send.pdf";
@@ -32,53 +29,6 @@ void *pthread_routine(void *arg);
 
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
-
-void close_socket(const int socket_fd){
-
-	/* TODO PUT THIS FUNCTION IN A SHARED HEADER */
-	
-	struct tcp_info info;
-	unsigned tcp_info_len;
-	unsigned long now;
-	unsigned old;
-	
-	tcp_info_len = (unsigned) sizeof info;
-	
-	if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-		fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-	old = info.tcpi_unacked;
-	now = get_milliseconds();
-	while (info.tcpi_unacked > 0){
-		if((unsigned long)(get_milliseconds() - now) > 1000000UL){
-			fprintf(stdout, "Expired close timeout\n");
-			break;
-		}
-		usleep((useconds_t) 100000);
-		if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-			fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-			close(socket_fd);
-			exit(1);
-		}
-		fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-
-		if(old > info.tcpi_unacked){ /* Some acks has arrived, hence other peer is still alive */
-			now = get_milliseconds();
-		}
-		else if(old < info.tcpi_unacked){
-			fprintf(stderr, "Remaining acks have increased... what is going on?\n");
-		}
-	}
-	
-	if(info.tcpi_unacked > 0){
-		fprintf(stderr, "WARNING - Socket will be closed but there are still %d unaked packets\n", info.tcpi_unacked);
-	}
-	fprintf(stdout, "Closing socket...\n");
-	close(socket_fd);
-}
 
 void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
 	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);

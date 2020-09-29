@@ -4,31 +4,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <time.h>
-
-
-#include <sys/stat.h>
 #include <errno.h>
 #include <sys/sendfile.h>
-
 #include <glib.h>
 #include <pbc.h>
-#include <pbc_random.h>
-
-#include <netinet/tcp.h>
 
 #include "bswabe.h"
-#include "common.h"
-#include "private.h"
 #include "util.h"
+#include "shared.h"
 
 #define BACKLOG 10
 
 ssize_t nbytes;
-size_t ret;
 int socket_fd;
 
 char* ciphertext_file = "to_send.pdf.cpabe";
@@ -54,12 +43,12 @@ void receive_username_size(const int new_socket_fd, size_t* const restrict usern
 	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 	if((unsigned long) nbytes < sizeof(size_t)){
 		fprintf(stderr, "Username size not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 }
@@ -67,12 +56,12 @@ void receive_username(const int new_socket_fd, char* const restrict user, const 
 	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 	if((size_t) nbytes < username_size){
 		fprintf(stderr, "Username not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 }
@@ -85,12 +74,12 @@ void send_data(const int new_socket_fd, const unsigned char* const restrict to_s
 	nbytes = send(new_socket_fd, (void*)to_send, (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending firmware updates size on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 	if((size_t) nbytes < LENGTH_FIELD_LEN){
 		fprintf(stdout, "WARNING - Firmware updates size not entirely sent on socket %d\n", new_socket_fd);
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 	
@@ -102,13 +91,11 @@ void send_data(const int new_socket_fd, const unsigned char* const restrict to_s
 		fprintf(stdout, "Sent %ld bytes on expected %lu\n", nbytes, count);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in sending firmware updates chunk on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-			close(new_socket_fd);
+			close_socket(new_socket_fd);
 			exit(1);
 		}
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - Firmware updates chunk not entirely sent on socket %d\n", new_socket_fd);
-			//close(new_socket_fd);
-			//exit(1);
 		}
 		remaining_data -= nbytes;
 		offset += (unsigned long)nbytes;
@@ -303,7 +290,7 @@ void *pthread_routine(void *arg) {
   receive_username_size(new_socket_fd, &username_size);
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close(new_socket_fd);
+		close_socket(new_socket_fd);
 		exit(1);
 	}
 	
@@ -313,7 +300,7 @@ void *pthread_routine(void *arg) {
 
 	send_data(new_socket_fd, buffer, total_len);
 	
-  close(new_socket_fd);
+  close_socket(new_socket_fd);
   free(user);
   free(buffer);
 	
@@ -322,6 +309,6 @@ void *pthread_routine(void *arg) {
 
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, " <-- Signal handler invoked\n");
-	close(socket_fd);
+	close_socket(socket_fd);
   exit(1);
 }

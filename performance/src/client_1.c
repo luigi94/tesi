@@ -2,16 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include <signal.h>
-#include <errno.h>	
-#include <netinet/tcp.h>
 
 #include "util.h"
+#include "shared.h"
 
 #define SERVER_NAME_LEN_MAX 255
 #define MAX_USER_LENGTH 64
@@ -22,55 +20,8 @@ int socket_fd;
 char* cleartext_file = "received.pdf";
 char* pubkey_file_name = "srvpubkey.pem";
 
-void close_socket(const int socket_fd){
-
-	/* TODO PUT THIS FUNCTION IN A SHARED HEADER */
-	
-	struct tcp_info info;
-	unsigned tcp_info_len;
-	unsigned long now;
-	unsigned old;
-	
-	tcp_info_len = (unsigned) sizeof info;
-	
-	if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-		fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-		close(socket_fd);
-		exit(1);
-	}
-	fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-	old = info.tcpi_unacked;
-	now = get_milliseconds();
-	while (info.tcpi_unacked > 0){
-		if((unsigned long)(get_milliseconds() - now) > 1000000UL){
-			fprintf(stdout, "Expired close timeout\n");
-			break;
-		}
-		usleep((useconds_t) 100000);
-		if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
-			fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
-			close(socket_fd);
-			exit(1);
-		}
-		fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
-
-		if(old > info.tcpi_unacked){ /* Some acks has arrived, hence other peer is still alive */
-			now = get_milliseconds();
-		}
-		else if(old < info.tcpi_unacked){
-			fprintf(stderr, "Remaining acks have increased... what is going on?\n");
-		}
-	}
-	
-	if(info.tcpi_unacked > 0){
-		fprintf(stderr, "WARNING - Socket will be closed but there are still %d unaked packets\n", info.tcpi_unacked);
-	}
-	fprintf(stdout, "Closing socket...\n");
-	close(socket_fd);
-}
-
 void send_username_size(const int socket_fd, const size_t* const restrict username_size){
-	nbytes = send(socket_fd, (void*)username_size, sizeof(size_t), 0);
+	nbytes = send(socket_fd, (void*)&(*username_size), (size_t)LENGTH_FIELD_LEN, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
 		close_socket(socket_fd);
@@ -145,7 +96,7 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 void check_freshness(const unsigned long now, const unsigned long time_stamp){
 	fprintf(stdout, "Received time stamp is %lu, current time stamp is %lu\n", time_stamp, now);
 	if(now - time_stamp > (unsigned long)FRESHNESS_THRESHOLD){
-		fprintf(stderr, "Received data are autodated\n");
+		fprintf(stderr, "Received data are outdated\n");
 		exit(1);
 	}
 }

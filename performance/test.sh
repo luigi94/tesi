@@ -57,15 +57,12 @@ elif [[ $INPUT = 3 ]]
 		openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
 		
 		cpabe-setup
-    cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
-		rm -f partial_updates
 		mv -f cltpubkey.pem Server
 		mv -f cltprvkey.pem Client
 		mv -f master_key Server
 		cp -f pub_key Server
 		mv -f pub_key Client
 		cp -f to_send.pdf Server
-		rm -f Server/test.db
 elif [[ $INPUT = 4 ]]
 	then
 		cpabe-setup

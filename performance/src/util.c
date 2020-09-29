@@ -59,8 +59,6 @@ void sign(const unsigned char* const restrict clear_buf, const unsigned long cle
 		exit(1);
 	}
 	
-	fprintf(stdout, "Signature size: %u, as expected\n", tmp);
-	
 	*sgnt_size = (unsigned long)tmp;
 	
 	// delete the digest and the private key from memory:
@@ -83,7 +81,6 @@ void verify(const unsigned char* const restrict file_buf, unsigned long* const r
 	}
 	pubkey = PEM_read_PUBKEY(pubkey_file, NULL, NULL, NULL);
 	sgnt_size = (unsigned) EVP_PKEY_size(pubkey);
-	fprintf(stdout, "Signature size: %d\n", sgnt_size);
 	fclose(pubkey_file);
 	
 	const EVP_MD* md = EVP_sha256();
@@ -230,7 +227,6 @@ void seal(const char* const restrict pubkey_file_name, const char* const restric
 		fprintf(stderr, "Error: EVP_SealInit returned %d\n", ret);
 		exit(1);
 	}
-	fprintf(stdout, "Encrypted key len: %d\n", encrypted_key_len);
 	nc = 0; // bytes encrypted at each chunk
 	nctot = 0; // total encrypted bytes
 	ret = EVP_SealUpdate(ctx, cphr_buf, &nc, clear_buf, clear_size);  

@@ -41,23 +41,21 @@ void check_error(const int rc, sqlite3* db) {
 }
 
 static int callback(void *ui, int argc, char **argv, char **azColName) {
-	
-			fprintf(stdout, "Fin qui tutto bene 1\n");
 	size_t size;
 	sqlite3_int64 tmp;
 	
+	UNUSED(argc);
+	UNUSED(azColName);
+	
 	size = strlen(argv[0]) > (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN ? (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN : strlen(argv[0]);
-	fprintf(stdout, "Look at here: %s (%lu bytes)\n", argv[0], strlen(argv[0]));
 	memcpy((void*)((user_info*)ui)->encryped_decryption_key_name, (void*)argv[0], size);
 	((user_info*)ui)->encryped_decryption_key_name[size] = '\0';
 	
 	size = strlen(argv[1]) > (size_t) MAX_FILE_NAME_LEN ? (size_t) MAX_FILE_NAME_LEN : strlen(argv[1]);
-	fprintf(stdout, "LOok at here: %s (%lu bytes)\n", argv[1], strlen(argv[1]));
 	memcpy((void*)((user_info*)ui)->encrypted_file_name, (void*)argv[1], size);
 	((user_info*)ui)->encrypted_file_name[size] = '\0';
 	
 	size = strlen(argv[2]) > (size_t) MAX_ATTRIBUTE_SET_LEN ? (size_t) MAX_ATTRIBUTE_SET_LEN : strlen(argv[2]);
-	fprintf(stdout, "LOok at here: %s (%lu bytes)\n", argv[2], strlen(argv[2]));
 	memcpy((void*)((user_info*)ui)->current_attribute_set, (void*)argv[2], size);
 	((user_info*)ui)->current_attribute_set[size] = '\0';
 	
@@ -98,16 +96,12 @@ void get_user_info(sqlite3* db, const char* const restrict user, user_info* rest
 	int rc;
 	
 	sql = sqlite3_mprintf("SELECT encrypted_decryption_key, encrypted_file, current_attribute_set, key_version, updated_key_version, ciphertext_version, updated_ciphertext_version FROM Users WHERE User = '%s';", user);
-	fprintf(stdout, "Query: %s (%lu bytes)\n", sql, strlen(sql));
-			fprintf(stdout, "Fin qui tutto bene\n");
 	if((*ui = (user_info*)malloc(sizeof(user_info))) == NULL){
 		fprintf(stderr, "Error in allocating memory for user info. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-			fprintf(stdout, "Fin qui tutto bene\n");
 	rc = sqlite3_exec(db, sql, callback, (void*)*ui, &err_msg);
 	check_error(rc, db);
-			fprintf(stdout, "Fin qui tutto bene\n");
 
 	if (rc != SQLITE_OK ){
 		fprintf(stderr, "Failed to select data\n");
@@ -117,9 +111,8 @@ void get_user_info(sqlite3* db, const char* const restrict user, user_info* rest
 		sqlite3_close(db);
 		exit(1);
 	}
-			fprintf(stdout, "Fin qui tutto bene\n");
 	sqlite3_free(err_msg);
-		sqlite3_free(sql);
+	sqlite3_free(sql);
 }
 
 void initialize_db(sqlite3* db){
@@ -230,7 +223,6 @@ void bswabe_keygen_bis(const char* const restrict attribute_set, char* const res
 			}
 			memcpy((void*)tmp, (void*)(attribute_set + start), size);
 			tmp[size - 1] = '\0';
-			fprintf(stdout, "Parsing attribute: '%s' (strlen() returned %lu, size is %lu)\n", tmp, strlen(tmp), size);
 			parse_attribute(&alist, tmp);
 		}else{
 			start = i;
@@ -244,7 +236,6 @@ void bswabe_keygen_bis(const char* const restrict attribute_set, char* const res
 			}
 			memcpy((void*)tmp, (void*)(attribute_set + start), size);
 			tmp[size - 1] = '\0';
-			fprintf(stdout, "Parsing attribute: '%s' (strlen() returned %lu, size is %lu)\n", tmp, strlen(tmp), size);
 			parse_attribute(&alist, tmp);
 		}
 	}
