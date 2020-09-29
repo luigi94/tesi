@@ -15,9 +15,6 @@
 #include "util.h"
 #include "shared.h"
 
-#define SERVER_NAME_LEN_MAX 255
-#define MAX_USER_LENGTH 64
-
 ssize_t nbytes;
 int socket_fd;	
 
@@ -155,7 +152,6 @@ int main(int argc, char *argv[]) {
 	strncpy(user, argv[3], MAX_USER_LENGTH);
 	user[MAX_USER_LENGTH - 1] = '\0';
 	username_size = strlen(user);
-	fprintf(stdout, "ID is %s (%lu bytes)\n", user, username_size);
 	
 	/* Get server host from server name. */
 	server_host = gethostbyname(server_name);

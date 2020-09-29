@@ -45,7 +45,7 @@ void *key_authority_routine(void *arg);
 void signal_handler();
 
 void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
-	nbytes = recv(new_socket_fd, (void*)&(*username_size), (size_t) sizeof(size_t), 0);
+	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 		close_socket(new_socket_fd);
@@ -58,7 +58,7 @@ void receive_username_size(const int new_socket_fd, size_t* const restrict usern
 	}
 }
 void receive_username(const int new_socket_fd, char* const restrict user, const size_t username_size){
-	nbytes = recv(new_socket_fd, (void*)user, username_size, 0);
+	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 		close_socket(new_socket_fd);
@@ -361,6 +361,7 @@ void *pthread_routine(void *arg) {
   
   user_info* ui = NULL;
   receive_username_size(new_socket_fd, &username_size);
+  username_size = username_size > (size_t) MAX_USER_LENGTH ? (size_t) MAX_USER_LENGTH : username_size;
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
 		close_socket(new_socket_fd);
@@ -369,8 +370,6 @@ void *pthread_routine(void *arg) {
 	
 	receive_username(new_socket_fd, user, username_size);
 	user[username_size] = '\0';
-	
-	fprintf(stdout, "User is %s (%lu bytes, size %lu)\n", user, strlen(user), username_size);
 	
 	pthread_mutex_lock(mutex);
 	
@@ -429,8 +428,7 @@ void *key_authority_routine(void* arg){
 	uint32_t new_version;
 	user_info* ui = NULL;
 	bswabe_pub_t* pub;
-	
-	mutex = (pthread_mutex_t*)arg;	
+	mutex = (pthread_mutex_t*)arg;
 	
 	while(TRUE){
 		pthread_mutex_lock(mutex);
@@ -476,7 +474,10 @@ void *key_authority_routine(void* arg){
 		
 		pthread_mutex_unlock(mutex);
 		
-		usleep(10000000);
+		if(usleep(10000000) != 0){
+			fprintf(stderr, "Error in usleep(). Error: %s\n", strerror(errno));
+			exit(1);
+		}
 	}
 }
 

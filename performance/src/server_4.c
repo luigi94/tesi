@@ -322,6 +322,7 @@ void *pthread_routine(void *arg) {
   unsigned long total_len;
  	
   receive_username_size(new_socket_fd, &username_size);
+  username_size = username_size > (size_t) MAX_USER_LENGTH ? (size_t) MAX_USER_LENGTH : username_size;
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
 		close_socket(new_socket_fd);
@@ -329,6 +330,7 @@ void *pthread_routine(void *arg) {
 	}
 	
 	receive_username(new_socket_fd, user, username_size);
+	user[username_size] = '\0';
 	
 	partial_updates_version = get_partial_updates_version(partial_updates_file);
 	cph_version = get_cph_version(ciphertext_file);

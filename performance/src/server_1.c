@@ -280,11 +280,15 @@ void *pthread_routine(void *arg) {
   unsigned long total_len;
  	
   receive_username_size(new_socket_fd, &username_size);
+  username_size = username_size > (size_t) MAX_USER_LENGTH ? (size_t) MAX_USER_LENGTH : username_size;
 	if((user = (char*)malloc(username_size)) == NULL){
 		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
 		close_socket(new_socket_fd);
 		exit(1);
 	}
+	
+	receive_username(new_socket_fd, user, username_size);
+	user[username_size] = '\0';
 	
 	make_buffer_and_sign(to_send_file, &buffer, &total_len, prvkey_file_name);
 

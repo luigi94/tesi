@@ -1,3 +1,6 @@
+#define SERVER_NAME_LEN_MAX 255
+#define MAX_USER_LENGTH 64
+
 #define MAX_BUF 1<<18
 #define UPDATES_LEN 260
 #define TIMESTAMP_LEN 8

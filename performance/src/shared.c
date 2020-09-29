@@ -29,7 +29,10 @@ void close_socket(const int socket_fd){
 			fprintf(stdout, "Expired close timeout\n");
 			break;
 		}
-		usleep((useconds_t) 100000);
+		if(usleep((useconds_t) 100000) != 0){
+			fprintf(stderr, "Error in usleep(). Error: %s\n", strerror(errno));
+			exit(1);
+		}
 		if(getsockopt(socket_fd, SOL_TCP, TCP_INFO, (void*)&info, &tcp_info_len) != 0){
 			fprintf(stderr, "Error on getsockopt(). Error: %s\n", strerror(errno));
 			close(socket_fd);
