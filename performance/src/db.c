@@ -9,7 +9,6 @@
 #include <ctype.h>
 #include <glib.h>
 #include <pbc.h>
-#include <pbc_random.h>
 #include <regex.h>
 
 #include "bswabe.h"

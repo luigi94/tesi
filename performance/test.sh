@@ -1,100 +1,78 @@
 #!/bin/bash
-
-INPUT=$1
-CLT="client_1.c"
-SRV="server_1.c"
-
-if [[ $INPUT = 1 ]]
-	then
-		echo "Configuration for Scenario 1"
-elif [[ $INPUT = 2 ]]
-	then
-		echo "Configuration for Scenario 2"
-		CLT="client_2.c"
-		SRV="server_2.c"
-elif [[ $INPUT = 3 ]]
-	then
-		echo "Configuration for Scenario 3"
-		CLT="client_3.c"
-		SRV="server_3.c"
-elif [[ $INPUT = 4 ]]
-	then
-		echo "Configuration for Scenario 4"
-		CLT="client_4.c"
-		SRV="server_4.c"
-else
-	echo "Unknown configuration, use default (1)"
-	INPUT=1
-fi
-
 make clean
-make all client=$CLT server=$SRV
+make all
+
+#sshpass -p 'root' ssh root@192.168.1.200 "mkdir -p /root/Documents/tesi/performance/Client"
 
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out srvprvkey.pem
 openssl pkey -in srvprvkey.pem -pubout -out srvpubkey.pem
 
-mv -f srvprvkey.pem Server
-mv -f srvpubkey.pem Client
+cpabe-setup
 
-if [[ $INPUT = 1 ]]
-	then
-		cp -f to_send.pdf Server
-elif [[ $INPUT = 2 ]]
-	then
-		cpabe-setup
-		cpabe-keygen -o kevin_priv_key pub_key master_key business_staff strategy_team 'executive_level = 7' 'office = 2362' 'hire_date = '`date +%s`
-    cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
-		mv -f master_key Server
-		cp -f pub_key Server
-		mv -f pub_key Client
-		mv -f kevin_priv_key Client
-		mv -f to_send.pdf.cpabe Server
+cpabe-keygen -o kevin_priv_key pub_key master_key business_staff strategy_team 'executive_level = 7' 'office = 2362' 'hire_date = '`date +%s`
+cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
+
+openssl genrsa -out cltprvkey.pem 3072
+openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
+
+cp -f srvprvkey.pem Server_1
+cp -f srvprvkey.pem Server_2
+cp -f srvprvkey.pem Server_3
+cp -f srvprvkey.pem Server_4
+cp -f srvpubkey.pem Client_1
+cp -f srvpubkey.pem Client_2
+cp -f srvpubkey.pem Client_3
+mv -f srvpubkey.pem Client_4
+#sshpass -p 'root' scp srvpubkey.pem root@192.168.1.200:/root/Documents/tesi/performance/Client
+
+cp -f to_send.pdf Server_1
+cp -f to_send.pdf Server_3
+
+cp -f master_key Server_2
+cp -f master_key Server_3
+
+cp -f pub_key Server_2
+cp -f pub_key Server_3
+cp -f pub_key Client_2
+cp -f pub_key Client_3
+
+#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
+#sshpass -p 'root' scp kevin_priv_key root@192.168.1.200:/root/Documents/tesi/performance/Client
+
+cp -f kevin_priv_key Client_2
+cp -f kevin_priv_key Client_3
+cp -f kevin_priv_key Client_4
+cp -f to_send.pdf.cpabe Server_2
+cp -f to_send.pdf.cpabe Server_4
 		
-elif [[ $INPUT = 3 ]]
-	then
-		echo "---------- SETTING UP SCENARIO 3 ----------"
-		openssl genrsa -out cltprvkey.pem 3072
-		openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
-		
-		cpabe-setup
-		mv -f cltpubkey.pem Server
-		mv -f cltprvkey.pem Client
-		mv -f master_key Server
-		cp -f pub_key Server
-		mv -f pub_key Client
-		cp -f to_send.pdf Server
-elif [[ $INPUT = 4 ]]
-	then
-		cpabe-setup
-		#cpabe-keygen -o sara_priv_key -p dummy pub_key master_key sysadmin it_department 'office = 1431' 'hire_date = '`date +%s`
-		cpabe-keygen -o kevin_priv_key pub_key master_key business_staff strategy_team 'executive_level = 7' 'office = 2362' 'hire_date = '`date +%s`
-    cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
+cp -f cltpubkey.pem Server_3
+#sshpass -p 'root' scp cltprvkey.pem root@192.168.1.200:/root/Documents/tesi/performance/Client
+cp -f cltprvkey.pem Client_3
+#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
 
-		cpabe-updatemk pub_key master_key upd_key
-		cpabe-updatemk pub_key master_key upd_key
-		cpabe-updatemk pub_key master_key upd_key
-		cpabe-updatemk pub_key master_key upd_key
 
-		mv -f master_key Server
-		cp -f pub_key Server
-		mv -f pub_key Client
-		mv -f kevin_priv_key Client
-		mv -f partial_updates Server
-		mv -f to_send.pdf.cpabe Server
-		mv -f upd_key Server
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
 
-		#cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
-fi
+cp -f master_key Server_4
+cp -f pub_key Server_4
+cp -f master_key Client_4
+cp -f pub_key Client_4
+#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
+#sshpass -p 'root' scp kevin_priv_key root@192.168.1.200:/root/Documents/tesi/performance/Client
+cp -f partial_updates Server_4
+cp -f upd_key Server_4
+
+rm -f cltprvkey.pem
+rm -f cltpubkey.pem
+rm -f kevin_priv_key
+rm -f master_key
+rm -f partial_updates
+rm -f pub_key
+rm -f srvprvkey.pem
+rm -f to_send.pdf.cpabe
+rm -f upd_key
 
 chmod 777 -R .
-
-<< 'MULTILINE-COMMENT'
-cpabe-update-partial-updates partial_updates upd_key pub_key
-cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
-
-
-cpabe-updatecp to_send.pdf upd_key pub_key
-cpabe-updatecp to_send.pdf upd_key pub_key
-
-cpabe-dec pub_key kevin_priv_key to_send.pdf
-MULTILINE-COMMENT

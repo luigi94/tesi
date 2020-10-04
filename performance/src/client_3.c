@@ -14,6 +14,7 @@
 
 #include "util.h"
 #include "shared.h"
+#include "parameters.h"
 
 ssize_t nbytes;
 int socket_fd;	
@@ -55,7 +56,6 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 	unsigned long pointer;
 	
 	nbytes = recv(socket_fd, (void*)&(*data_size), (size_t)LENGTH_FIELD_LEN, 0);
-	fprintf(stdout, "Received %ld bytes on socket %d for data size\n", nbytes, socket_fd);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
 		close_socket(socket_fd);
@@ -66,8 +66,6 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 		close_socket(socket_fd);
 		exit(1);
 	}
-	
-	fprintf(stdout, "Data size = %lu\n", *data_size);
 	
 	if((*data_buf = (unsigned char*)malloc((size_t)*data_size)) == NULL){
 		fprintf(stderr, "Error in allocating memeory for data size buffer. Error: %s\n", strerror(errno));
@@ -80,25 +78,22 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 	while(remaining_data > 0){
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
 		nbytes = recv(socket_fd, (void*) (*data_buf + pointer), count, 0);
-		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
 			close_socket(socket_fd);
 			exit(1);
 		}
+		/*
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - File not entirely received from socket %d\n", socket_fd);
 		}
+		*/
 		remaining_data -= (unsigned long)nbytes;
 		pointer += (unsigned long) nbytes;
-		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %lu bytes\n", nbytes, remaining_data);
 	}
-	
-	fprintf(stdout, "Received %lu bytes\n", pointer);
 }
 
 void check_freshness(const unsigned long now, const unsigned long time_stamp){
-	fprintf(stdout, "Current time stamp is %lu\n", now);
 	if(now - time_stamp > (unsigned long)FRESHNESS_THRESHOLD){
 		fprintf(stderr, "Received data are outdated\n");
 		exit(1);
@@ -133,6 +128,9 @@ int main(int argc, char *argv[]) {
 	
 	unsigned long time_stamp;
 	unsigned long now;
+	
+	size_t iteration;
+	FILE* f_results;
 
 	if (argc != 4) {
 		fprintf(stderr, "USAGE: ./client server_address port_number user\n");
@@ -144,108 +142,115 @@ int main(int argc, char *argv[]) {
 	
 	signal(SIGINT, signal_handler);
 	
-	if((user = (char*)malloc(MAX_USER_LENGTH)) == NULL){
-		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close_socket(socket_fd);
+	if((f_results = fopen(results_file_name, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", results_file_name, strerror(errno));
 		exit(1);
 	}
-	strncpy(user, argv[3], MAX_USER_LENGTH);
-	user[MAX_USER_LENGTH - 1] = '\0';
-	username_size = strlen(user);
 	
-	/* Get server host from server name. */
-	server_host = gethostbyname(server_name);
-
-	/* Initialise IPv4 server address with server host. */
-	memset(&server_address, 0, sizeof server_address);
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(server_port);
-	memcpy(&server_address.sin_addr.s_addr, server_host->h_addr, server_host->h_length);
-
-	/* Create TCP socket. */
-	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("socket");
-		close_socket(socket_fd);
-		exit(1);
-	}
-
-	/* Connect to socket with server address. */
-	if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof server_address) == -1) {
-		perror("connect");
-		exit(1);
-	}
-
-	send_username_size(socket_fd, &username_size);
-
-	send_username(socket_fd, user, username_size);
-	
-	recv_data(socket_fd, &data_buf, &data_size);
-	
-	fprintf(stdout, "Closing socket\n");
-	close_socket(socket_fd);
-	
-	/* I take the current time_stamp before the signature verification 
-	because this procedure may take a long time */
-	now = (unsigned long)time(NULL);
-	
-	verify(data_buf, &data_size, pubkey_file_name);
-	
-	pointer = (unsigned long) LENGTH_FIELD_LEN;
-	
-	/* Get timestamp and check freshness */
-	memcpy((void*)&time_stamp, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
-	pointer += (unsigned long) TIMESTAMP_LEN;
-	check_freshness(now, time_stamp);
-	
-	/* Get encrpyted key length */
-	memcpy((void*)&encrypted_key_len, (void*)(data_buf + pointer), (size_t)LENGTH_FIELD_LEN);
-	fprintf(stdout, "Encrypted key lenght: %lu\n", encrypted_key_len);
-	pointer += (unsigned long) LENGTH_FIELD_LEN;
-	
-	if(encrypted_key_len != 0){
-		if((encrypted_key_buf = (unsigned char*)malloc((size_t)encrypted_key_len)) == NULL){
-			fprintf(stdout, "Error in allocating memory for the encrypted key buffer. Error: %s\n", strerror(errno));
-			exit(1);
-		}
-		memcpy((void*)encrypted_key_buf, (void*)(data_buf + pointer), (size_t)encrypted_key_len);
-		pointer += (unsigned long) encrypted_key_len;
-		open(cltprvkey, encrypted_key_buf, encrypted_key_len, &clear_key_buf, &clear_key_len);
-		free(encrypted_key_buf);
-		if((prv_key_file = fopen(prv_file, "w")) == NULL){
-			fprintf(stderr, "Error in opening '%s'. Error: %s\n", prv_file, strerror(errno));
-			exit(1);
-		}
-		if(fwrite(clear_key_buf, 1UL, clear_key_len, prv_key_file) < clear_key_len){
-			fprintf(stderr, "Error while writing the file '%s'\n", prv_file);
-			exit(1);
-		}
-		free(clear_key_buf);
-		fclose(prv_key_file);
-	} 
-	
-	ciphertext_size = data_size - pointer;
-	if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
-		fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	fprintf(stdout, "Ciphertext size: %lu\n", ciphertext_size);
-	
-	memcpy((void*)ciphertext_buf, (void*)(data_buf + pointer), ciphertext_size);
-	
-	free(data_buf);
-	
-	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
-		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-	if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf))
-		die("%s", bswabe_error());
+	for(iteration = 0UL; iteration < ITERATIONS; ++iteration){
 		
-	free(ciphertext_buf);
-	free(pub);
-	free(user);
+		if((user = (char*)malloc(MAX_USER_LENGTH)) == NULL){
+			fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
+			close_socket(socket_fd);
+			exit(1);
+		}
+		strncpy(user, argv[3], MAX_USER_LENGTH);
+		user[MAX_USER_LENGTH - 1] = '\0';
+		username_size = strlen(user);
+		
+		/* Get server host from server name. */
+		server_host = gethostbyname(server_name);
+
+		/* Initialise IPv4 server address with server host. */
+		memset(&server_address, 0, sizeof server_address);
+		server_address.sin_family = AF_INET;
+		server_address.sin_port = htons(server_port);
+		memcpy(&server_address.sin_addr.s_addr, server_host->h_addr, server_host->h_length);
+
+		/* Create TCP socket. */
+		if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+			perror("socket");
+			close_socket(socket_fd);
+			exit(1);
+		}
+
+		/* Connect to socket with server address. */
+		if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof server_address) == -1) {
+			perror("connect");
+			exit(1);
+		}
+
+		send_username_size(socket_fd, &username_size);
+
+		send_username(socket_fd, user, username_size);
+		
+		recv_data(socket_fd, &data_buf, &data_size);
+		
+		close_socket(socket_fd);
+		
+		/* I take the current time_stamp before the signature verification 
+		because this procedure may take a long time */
+		now = (unsigned long)time(NULL);
+		
+		verify(data_buf, &data_size, pubkey_file_name);
+		
+		pointer = (unsigned long) LENGTH_FIELD_LEN;
+		
+		/* Get timestamp and check freshness */
+		memcpy((void*)&time_stamp, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
+		pointer += (unsigned long) TIMESTAMP_LEN;
+		check_freshness(now, time_stamp);
+		
+		/* Get encrpyted key length */
+		memcpy((void*)&encrypted_key_len, (void*)(data_buf + pointer), (size_t)LENGTH_FIELD_LEN);
+		pointer += (unsigned long) LENGTH_FIELD_LEN;
+		
+		if(encrypted_key_len != 0){
+			if((encrypted_key_buf = (unsigned char*)malloc((size_t)encrypted_key_len)) == NULL){
+				fprintf(stderr, "Error in allocating memory for the encrypted key buffer. Error: %s\n", strerror(errno));
+				exit(1);
+			}
+			memcpy((void*)encrypted_key_buf, (void*)(data_buf + pointer), (size_t)encrypted_key_len);
+			pointer += (unsigned long) encrypted_key_len;
+			open(cltprvkey, encrypted_key_buf, encrypted_key_len, &clear_key_buf, &clear_key_len);
+			free(encrypted_key_buf);
+			if((prv_key_file = fopen(prv_file, "w")) == NULL){
+				fprintf(stderr, "Error in opening '%s'. Error: %s\n", prv_file, strerror(errno));
+				exit(1);
+			}
+			if(fwrite(clear_key_buf, 1UL, clear_key_len, prv_key_file) < clear_key_len){
+				fprintf(stderr, "Error while writing the file '%s'\n", prv_file);
+				exit(1);
+			}
+			free(clear_key_buf);
+			fclose(prv_key_file);
+		} 
+		
+		ciphertext_size = data_size - pointer;
+		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
+			fprintf(stderr, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		
+		memcpy((void*)ciphertext_buf, (void*)(data_buf + pointer), ciphertext_size);
+		
+		free(data_buf);
+		
+		if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
+			fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+
+		pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+		if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf, f_results))
+			die("%s", bswabe_error());
+			
+		free(ciphertext_buf);
+		free(pub);
+		free(user);
+	}
+	
+	fclose(f_results);
 	
 	return 0;
 }

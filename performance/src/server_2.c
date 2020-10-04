@@ -280,7 +280,6 @@ int main(int argc, char *argv[]) {
 void *pthread_routine(void *arg) {
 	pthread_arg_t *pthread_arg = (pthread_arg_t *)arg;
   int new_socket_fd = pthread_arg->new_socket_fd;
-  struct sockaddr_in client_address = pthread_arg->client_address;
   free(arg);
 	char* user;
 	size_t username_size;

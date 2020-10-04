@@ -11,6 +11,9 @@
 #include <pbc.h>
 #include <errno.h>
 
+#include <time.h>
+#include <sys/time.h>
+
 #include "bswabe.h"
 #include "common.h"
 #include "private.h"
@@ -868,8 +871,14 @@ dec_flatten( element_t r, bswabe_policy_t* p, bswabe_prv_t* prv, bswabe_pub_t* p
 }
 
 int
-bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer)
+bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer, FILE* f_results)
 {
+
+	/* TODO: Is the time taken correctly?
+		1. seconds, milliseconds or microseconds?
+		2. are the operations between the two timestamps correct? Should I take other in consideration or not? Or should I put some out?
+		3. public key comes here already in memory, should I take in account the time needed to unserialize it?
+	*/
 	bswabe_prv_t* prv;
 	int file_len;
 	GByteArray* aes_buf;
@@ -879,8 +888,16 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	element_t t;
 	element_t m;
 	
+	struct timeval start;
+	struct timeval end;
+	
 	element_init_GT(m, pub->p);
 	element_init_GT(t, pub->p);
+	
+	if(gettimeofday(&start, NULL) != 0){
+		fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
+		exit(1);
+	}
 	
 	prv = bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 	read_cpabe_file_from_buffer(&cph_buf, &file_len, &aes_buf, file_buffer);
@@ -916,6 +933,14 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	plt = aes_128_cbc_decrypt(aes_buf, m);
 	g_byte_array_set_size(plt, file_len);
 	g_byte_array_free(aes_buf, 1);
+	
+	if(gettimeofday(&end, NULL) != 0){
+		fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	if(f_results)
+		fprintf(f_results, "%lu\n", (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
 
 	spit_file(out_file, plt, 1);
 	

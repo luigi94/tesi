@@ -116,7 +116,7 @@ void verify(const unsigned char* const restrict file_buf, unsigned long* const r
 		fprintf(stderr, "Some error occured during signature verification\n");
 		exit(1);
 	}else if (ret == 1){
-		fprintf(stdout, "Signature verified\n");
+		// fprintf(stdout, "Signature verified\n");
 	}else{
 		fprintf(stderr, "I shouldn't be printed. EVP_VerifyFinal returned %d\n", ret);
 		exit(1);
@@ -403,7 +403,6 @@ void write_file(unsigned char* buffer, size_t data_len, char* name){
 		fprintf(stderr, "Error in opening %s. Error: %s\n", name, strerror(errno));
 		exit(1);
 	}
-	fprintf(stdout, "I'm writing %lu bytes on %s\n", data_len, name);
 	fwrite(buffer, data_len, 1, tmp);
 	fclose(tmp);
 }

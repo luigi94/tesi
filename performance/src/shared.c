@@ -21,7 +21,6 @@ void close_socket(const int socket_fd){
 		close(socket_fd);
 		exit(1);
 	}
-	fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
 	old = info.tcpi_unacked;
 	now = get_milliseconds();
 	while (info.tcpi_unacked > 0){
@@ -38,7 +37,6 @@ void close_socket(const int socket_fd){
 			close(socket_fd);
 			exit(1);
 		}
-		fprintf(stdout, "%d unacket packets remaining\n", info.tcpi_unacked);
 
 		if(old > info.tcpi_unacked){ /* Some acks has arrived, hence other peer is still alive */
 			now = get_milliseconds();
@@ -51,6 +49,5 @@ void close_socket(const int socket_fd){
 	if(info.tcpi_unacked > 0){
 		fprintf(stderr, "WARNING - Socket will be closed but there are still %d unaked packets\n", info.tcpi_unacked);
 	}
-	fprintf(stdout, "Closing socket...\n");
 	close(socket_fd);
 }

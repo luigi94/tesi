@@ -4,63 +4,143 @@ CC = gcc
 
 SRC = src
 
-CFLAGS = -O3 -Wall -Wextra -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pbc -I/usr/local/include/pbc -DPACKAGE_NAME=\"cpabe\" -DPACKAGE_TARNAME=\"cpabe\" -DPACKAGE_VERSION=\"0.11\" -DPACKAGE_STRING=\"cpabe\ 0.11\" -DPACKAGE_BUGREPORT=\"bethenco@cs.berkeley.edu\" -DPACKAGE_URL=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_FCNTL_H=1 -DHAVE_STDDEF_H=1 -DHAVE_STRING_H=1 -DHAVE_STDLIB_H=1 -DHAVE_MALLOC=1 -DLSTAT_FOLLOWS_SLASHED_SYMLINK=1 -DHAVE_VPRINTF=1 -DHAVE_LIBCRYPTO=1 -DHAVE_LIBCRYPTO=1 -DHAVE_STRCHR=1 -DHAVE_STRDUP=1 -DHAVE_MEMSET=1 -DHAVE_GMP=1 -DHAVE_PBC=1 -DHAVE_BSWABE=1 
+COMMON_FLAGS = -O3 -Wall -Wextra
 
-LDFLAGS = -O3 -Wall -Wextra -lglib-2.0 -Wl,-rpath /usr/local/lib -Wl,-rpath /usr/local/lib -lpbc -lbswabe -lcrypto -lgmp -lnsl -lsocket
+INCLUSIONS = -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/local/include/pbc
 
-TARGETS = Client/client Server/server
+LDFLAGS = -lglib-2.0 -Wl,-rpath /usr/local/lib -lpbc -lcrypto -lgmp -lsocket
+
+TARGETS = Server_1/server Server_2/server Server_3/server Server_4/server Client_1/client Client_2/client Client_3/client Client_4/client
 
 $(SRC)/common.o: $(SRC)/common.c $(SRC)/common.h
 	@echo "Compiling common.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
 	
 $(SRC)/core.o: $(SRC)/core.c $(SRC)/bswabe.h $(SRC)/common.h $(SRC)/private.h
 	@echo "Compiling core.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
 	
 $(SRC)/misc.o: $(SRC)/misc.c $(SRC)/bswabe.h $(SRC)/private.h
 	@echo "Compiling misc.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
 	
 $(SRC)/policy_lang.o: $(SRC)/policy_lang.c $(SRC)/policy_lang.h $(SRC)/common.h
 	@echo "Compiling policy_lang.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
 
 $(SRC)/util.o: $(SRC)/util.c $(SRC)/util.h
 	@echo "Compiling util.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
 	
 $(SRC)/db.o: $(SRC)/db.c $(SRC)/db.h
 	@echo "Compiling db.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
 	
 $(SRC)/shared.o: $(SRC)/shared.c $(SRC)/shared.h
 	@echo "Compiling shared.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
+
+# ---------- SCENARIO 1 ----------
+
+$(SRC)/client_1.o: $(SRC)/client_1.c $(SRC)/shared.h $(SRC)/util.h 
+	@echo "Compiling client_1.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
 	
-$(SRC)/client.o: $(SRC)/$(client) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
-	@echo "Compiling client.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+Client_1/client: $(SRC)/shared.o $(SRC)/util.o $(SRC)/client_1.o | Client_1
+	@echo "Creating client (Scenario 1) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lnsl -lsocket -lcrypto
+
+$(SRC)/server_1.o: $(SRC)/server_1.c $(SRC)/util.h $(SRC)/shared.h
+	@echo "Compiling server_1.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
+
+Server_1/server: $(SRC)/shared.o $(SRC)/util.o $(SRC)/server_1.o | Server_1
+	@echo "Creating server (Scenario 1) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lnsl -lsocket -pthread -lcrypto
 	
-$(SRC)/server.o: $(SRC)/$(server) $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/db.h $(SRC)/shared.h
+	
+# ---------- SCENARIO 2 ----------
+	
+$(SRC)/client_2.o: $(SRC)/client_2.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
+	@echo "Compiling client_2.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+	
+Client_2/client: $(OBJS) $(SRC)/client_2.o | Client_2
+	@echo "Creating client (Scenario 2) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS)
+
+$(SRC)/server_2.o: $(SRC)/server_2.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
 	@echo "Compiling server.c"
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+
+Server_2/server: $(OBJS) $(SRC)/server_2.o | Server_2
+	@echo "Creating server (Scenario 2) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS) -pthread
 	
-Client/client: $(OBJS) $(SRC)/client.o | Client
-	@echo "Creating client executable"
-	$(CC) -o $@ $^ $(LDFLAGS)
 	
-Server/server: $(OBJS) $(SRC)/db.o $(SRC)/server.o | Server
-	 @echo "Creating server executable"
-	$(CC) -o $@ $^ $(LDFLAGS) -lsqlite3 -pthread
+# ---------- SCENARIO 3 ----------
+	
+$(SRC)/client_3.o: $(SRC)/client_3.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
+	@echo "Compiling client_3.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+	
+Client_3/client: $(OBJS) $(SRC)/client_3.o | Client_3
+	@echo "Creating client (Scenario 3) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS)
+
+$(SRC)/server_3.o: $(SRC)/server_3.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/db.h $(SRC)/shared.h
+	@echo "Compiling server_3.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+
+Server_3/server: $(OBJS) $(SRC)/db.o $(SRC)/server_3.o | Server_3
+	@echo "Creating server (Scenario 3) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS) -lsqlite3 -pthread
+	
+	
+# ---------- SCENARIO 4 ----------
+	
+$(SRC)/client_4.o: $(SRC)/client_4.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
+	@echo "Compiling client_4.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+	
+Client_4/client: $(OBJS) $(SRC)/client_4.o | Client_4
+	@echo "Creating client (Scenario 4) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS)
+
+$(SRC)/server_4.o: $(SRC)/server_4.c $(SRC)/bswabe.h $(SRC)/private.h $(SRC)/common.h $(SRC)/util.h $(SRC)/shared.h
+	@echo "Compiling server_4.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS) $(INCLUSIONS)
+
+Server_4/server: $(OBJS) $(SRC)/server_4.o | Server_4
+	@echo "Creating server (Scenario 4) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) $(LDFLAGS) -pthread
 	
 all: $(TARGETS)
 
 clean:
-	rm -f Client/* Server/* $(SRC)/*.o
+	rm -f $(SRC)/*.o
+	rmdir Server_1/ Server_2/ Server_3/ Server_4/ Client_1/ Client_2/ Client_3/ Client_4/
 
-Client:
+Server_1:
 	mkdir -p $@
 
-Server:
+Server_2:
+	mkdir -p $@
+	
+Server_3:
+	mkdir -p $@
+	
+Server_4:
+	mkdir -p $@
+	
+Client_1:
+	mkdir -p $@
+
+Client_2:
+	mkdir -p $@ 
+
+Client_3:
+	mkdir -p $@ 
+
+Client_4:
 	mkdir -p $@ 
