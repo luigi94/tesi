@@ -7,7 +7,7 @@ make -f makefile.srv all
 
 sshpass -p 'root' scp makefile.clt root@192.168.1.200:/root/Documents/tesi/performance/makefile.clt
 sshpass -p 'root' scp src/client_1.c root@192.168.1.200:/root/Documents/tesi/performance/src/client_1.c
-sshpass -p 'root' scp src/client_1.c root@192.168.1.200:/root/Documents/tesi/performance/src/client_1.c
+sshpass -p 'root' scp src/client_2.c root@192.168.1.200:/root/Documents/tesi/performance/src/client_2.c
 sshpass -p 'root' scp src/client_3.c root@192.168.1.200:/root/Documents/tesi/performance/src/client_3.c
 sshpass -p 'root' scp src/client_4.c root@192.168.1.200:/root/Documents/tesi/performance/src/client_4.c
 sshpass -p 'root' scp src/common.c root@192.168.1.200:/root/Documents/tesi/performance/src/common.c

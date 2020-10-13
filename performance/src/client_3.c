@@ -164,13 +164,11 @@ int main(int argc, char *argv[]) {
 		
 		
 		if(iteration % REQUESTS == 0){
-			fprintf(stdout, "Iteration %lu\n", iteration);
-			/*
-			if(usleep((useconds_t) 15000000) != 0){
+			//fprintf(stdout, "Iteration %lu\n", iteration);
+			if(usleep((useconds_t) 20000000) != 0){
 				fprintf(stderr, "Error in usleep(). Error: %s\n", strerror(errno));
 				exit(1);
 			}
-			*/
 		}
 		
 		if(gettimeofday(&start, NULL) != 0){
@@ -238,7 +236,7 @@ int main(int argc, char *argv[]) {
 		cleartext_len = (unsigned long) ftell(tmp);
 		fclose(tmp);
 		
-		fprintf(f_results, "%lu, %lu, %lu, %lu, %lu\n", (iteration + 1UL)%2UL + (iteration + 1UL)/2UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec), data_size, ciphertext_size, cleartext_len);
+		fprintf(f_results, "%lu, %lu, %lu, %lu, %lu\n", iteration + 1UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec), data_size, ciphertext_size, cleartext_len);
 		
 		close_socket(socket_fd);
 		

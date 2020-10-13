@@ -35,7 +35,7 @@ char* srvprvkey = "srvprvkey.pem";
 char* policy = "ECU_MODEL_2247_v_0 or (CAR_MODEL_21_v_0 and ECU_MODEL_2248_v_0)"; // ECU_MODEL_2247 or (CAR_MODEL_21 and ECU_MODEL_2248)
 char* to_encrypt = "to_send.pdf";
 char* cltpubkey = "cltpubkey.pem";
-char* user = "blue_vehicle";
+char* user = "green_vehicle";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;

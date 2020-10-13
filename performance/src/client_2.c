@@ -21,7 +21,7 @@ int socket_fd;
 
 char* cleartext_file = "received.pdf";
 char* pub_file = "pub_key";
-char* priv_key = "blue_vehicle_priv_key";
+char* priv_key = "green_vehicle_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
 char* results_file_name = "Scenario_2.csv";
 
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
 		cleartext_len = (unsigned long) ftell(tmp);
 		fclose(tmp);
 		
-		fprintf(f_results, "%lu, %lu, %lu, %lu, %lu\n", (iteration + 1UL)%2UL + (iteration + 1UL)/2UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec), data_size, ciphertext_size, cleartext_len);
+		fprintf(f_results, "%lu, %lu, %lu, %lu, %lu\n", iteration + 1UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec), data_size, ciphertext_size, cleartext_len);
 			
 		close_socket(socket_fd);
 			
