@@ -275,7 +275,7 @@ void seal(const char* const restrict pubkey_file_name, const char* const restric
 	EVP_PKEY_free(pubkey);
 }
 
-void open(char* prvkey_file_name, unsigned char* ek_iv_cphr_buf, unsigned long ek_iv_cphr_size, unsigned char** clear_buf, unsigned long* clear_size){
+void unseal(const char* const restrict prvkey_file_name, const unsigned char* const restrict ek_iv_cphr_buf, const unsigned long ek_iv_cphr_size, unsigned char* restrict* const restrict clear_buf, unsigned long* const restrict clear_size){
 	int ret; // used for return values
 	FILE* prvkey_file;
 	EVP_PKEY* prvkey;
@@ -397,13 +397,17 @@ void open(char* prvkey_file_name, unsigned char* ek_iv_cphr_buf, unsigned long e
 
 
 
-void write_file(unsigned char* buffer, size_t data_len, char* name){
+void write_file(const unsigned char* const restrict buffer, const size_t data_len, const char* const restrict name){
 	FILE* tmp;
 	if((tmp = fopen(name, "w")) == NULL){
 		fprintf(stderr, "Error in opening %s. Error: %s\n", name, strerror(errno));
 		exit(1);
 	}
-	fwrite(buffer, data_len, 1, tmp);
+	if(fwrite(buffer, data_len, 1UL, tmp) != 1UL){
+		fprintf(stderr, "Error in writing %s. Error: %s\n", name, strerror(errno));
+		fclose(tmp);
+		exit(1);
+	}
 	fclose(tmp);
 }
 

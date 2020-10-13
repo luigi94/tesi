@@ -20,10 +20,10 @@ ssize_t nbytes;
 int socket_fd;	
 
 char* cleartext_file = "received.pdf";
-char* partial_updates_received = "partial_updates_received";
 char* pub_file = "pub_key";
-char* prv_file = "kevin_priv_key";
+char* prv_file = "blue_vehicle_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
+char* results_file_name = "results.csv";
 
 void send_username_size(const int socket_fd, const size_t* const restrict username_size){
 	nbytes = send(socket_fd, (void*)&(*username_size), (size_t)LENGTH_FIELD_LEN, 0);
@@ -181,8 +181,6 @@ int main(int argc, char *argv[]) {
 		
 		recv_data(socket_fd, &data_buf, &data_size);
 		
-		close_socket(socket_fd);
-		
 		/* I take the current time_stamp before the signature verification 
 		because this procedure may take a long time */
 		now = (unsigned long)time(NULL);
@@ -230,8 +228,10 @@ int main(int argc, char *argv[]) {
 		}
 
 		pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-		if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf, f_results))
+		if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf))
 			die("%s", bswabe_error());
+			
+		close_socket(socket_fd);
 			
 		free(ciphertext_buf);
 		free(pub);

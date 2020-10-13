@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 
 #include <sqlite3.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,25 +19,32 @@
 
 #define UNUSED(x) (void)(x)
 
-void open_db(sqlite3** const restrict db){
-	if (sqlite3_open(DATABASE, &(*db)) != SQLITE_OK) {
-		fprintf(stderr, "Cannot open database. Error: %s\n", sqlite3_errmsg(*db));
-		sqlite3_close(*db);
-		exit(1);
+int open_db_r(sqlite3** const restrict db){
+	int rc;
+	sqlite3_close_v2(*db);
+	if ((rc = sqlite3_open_v2(DATABASE, db, SQLITE_OPEN_READONLY, NULL)) != SQLITE_OK) {
+		sqlite3_close_v2(*db);
+		fprintf(stderr, "Cannot open database (in R mode). Error: %s (code %d)\n", sqlite3_errmsg(*db), rc);
+		return 0;
 	}
+	return 1;
 }
-void close_db(sqlite3* db){
-	if (sqlite3_close(db) != SQLITE_OK) {
+int open_db_rw(sqlite3** const restrict db){
+	int rc;
+	sqlite3_close_v2(*db);
+	if ((rc = sqlite3_open_v2(DATABASE, db, SQLITE_OPEN_READWRITE, NULL)) != SQLITE_OK) {
+		sqlite3_close_v2(*db);
+		fprintf(stderr, "Cannot open database (in R/W mode). Error: %s (code %d)\n", sqlite3_errmsg(*db), rc);
+		return 0;
+	}
+	return 1;
+}
+int close_db(sqlite3* db){
+	if (sqlite3_close_v2(db) != SQLITE_OK) {
 		fprintf(stderr, "Error in closing database. Error: %s\n", sqlite3_errmsg(db));
-		exit(1);
+		return 0;
 	}
-}
-void check_error(const int rc, sqlite3* db) {
-	if (rc != SQLITE_OK) {
-		printf("Error #%d: %s\n", rc, sqlite3_errmsg(db));
-		sqlite3_close(db);
-		exit(rc);
-	}
+	return 1;
 }
 
 static int callback(void *ui, int argc, char **argv, char **azColName) {
@@ -47,8 +55,8 @@ static int callback(void *ui, int argc, char **argv, char **azColName) {
 	UNUSED(azColName);
 	
 	size = strlen(argv[0]) > (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN ? (size_t) MAX_ENCRYPTED_DEC_KEY_NAME_LEN : strlen(argv[0]);
-	memcpy((void*)((user_info*)ui)->encryped_decryption_key_name, (void*)argv[0], size);
-	((user_info*)ui)->encryped_decryption_key_name[size] = '\0';
+	memcpy((void*)((user_info*)ui)->encrypted_decryption_key_name, (void*)argv[0], size);
+	((user_info*)ui)->encrypted_decryption_key_name[size] = '\0';
 	
 	size = strlen(argv[1]) > (size_t) MAX_FILE_NAME_LEN ? (size_t) MAX_FILE_NAME_LEN : strlen(argv[1]);
 	memcpy((void*)((user_info*)ui)->encrypted_file_name, (void*)argv[1], size);
@@ -61,124 +69,175 @@ static int callback(void *ui, int argc, char **argv, char **azColName) {
   tmp = strtoull(argv[3], NULL, 0);
 	if(tmp > (sqlite3_int64)UINT_MAX){
 		free(ui);
-		exit(1);
+		ui = NULL;
 	} 
 	((user_info*)ui)->key_version = (uint32_t)tmp;
 	
   tmp = strtoull(argv[4], NULL, 0);
 	if(tmp > (sqlite3_int64)UINT_MAX){
 		free(ui);
-		exit(1);
+		ui = NULL;
 	} 
 	((user_info*)ui)->updated_key_version = (uint32_t)tmp;
 	
   tmp = strtoull(argv[5], NULL, 0);
 	if(tmp > (sqlite3_int64)UINT_MAX){
 		free(ui);
-		exit(1);
+		ui = NULL;
 	} 
 	((user_info*)ui)->ciphertext_version = (uint32_t)tmp;
 	
   tmp = strtoull(argv[6], NULL, 0);
 	if(tmp > (sqlite3_int64)UINT_MAX){
 		free(ui);
-		exit(1);
+		ui = NULL;
 	} 
 	((user_info*)ui)->updated_ciphertext_version = (uint32_t)tmp;
 
 	return 0;
 }
 
-void get_user_info(sqlite3* db, const char* const restrict user, user_info* restrict* const restrict ui){
+int get_user_info(sqlite3* db, const char* const restrict user, user_info* restrict* const restrict ui){
 	char *err_msg = 0;
-	char *sql;
+	char *sql = NULL;
 	int rc;
-	
-	sql = sqlite3_mprintf("SELECT encrypted_decryption_key, encrypted_file, current_attribute_set, key_version, updated_key_version, ciphertext_version, updated_ciphertext_version FROM Users WHERE User = '%s';", user);
+	if(asprintf(&sql, "SELECT encrypted_decryption_key, encrypted_file, current_attribute_set, key_version, updated_key_version, ciphertext_version, updated_ciphertext_version FROM Users WHERE User = '%s';", user) < 0){
+		fprintf(stderr, "Error in constructing SELECT query. Error: %s\n", strerror(errno));
+		if(sql) free(sql);
+		close_db(db);
+		return 0;
+	}
 	if((*ui = (user_info*)malloc(sizeof(user_info))) == NULL){
 		fprintf(stderr, "Error in allocating memory for user info. Error: %s\n", strerror(errno));
-		exit(1);
+		return 0;
 	}
 	rc = sqlite3_exec(db, sql, callback, (void*)*ui, &err_msg);
-	check_error(rc, db);
-
-	if (rc != SQLITE_OK ){
-		fprintf(stderr, "Failed to select data\n");
-		fprintf(stderr, "SQL error: %s\n", err_msg);
-		sqlite3_free(err_msg);
-		sqlite3_free(sql);
-		sqlite3_close(db);
-		exit(1);
+	free(sql);
+	if(!(*ui)){
+		fprintf(stderr, "Error in retrieving user info\n");
+		free(err_msg);
+		close_db(db);
+		return 0;
 	}
-	sqlite3_free(err_msg);
-	sqlite3_free(sql);
+	if (rc != SQLITE_OK ){
+		fprintf(stderr, "Failed to select data. SQL error: %s (code %d)\n", err_msg, rc);
+		free(err_msg);
+		close_db(db);
+		return 0;
+	}
+	free(err_msg);
+	
+	return 1;
 }
 
-void initialize_db(sqlite3* db){
+int initialize_db(sqlite3* db){
 	char *err_msg = 0;
-
-	char *sql = "DROP TABLE IF EXISTS Users;"
+	// CAR_MODEL_23_v_0 ECU_MODEL_2247_v_0 ECU_MODEL_2256_v_0 ECU_MODEL_2268_v_0
+	// CAR_MODEL_21_v_0 ECU_MODEL_2246_v_0 ECU_MODEL_2248_v_0
+	int rc;
+	const char* const sql = "DROP TABLE IF EXISTS Users;"
 		"CREATE TABLE Users(User CHAR(32) NOT NULL PRIMARY KEY, encrypted_decryption_key CHAR(32) NOT NULL, encrypted_file CHAR(32) NOT NULL, current_attribute_set CHAR(256) NOT NULL, "
-		"key_version INT UNISGNED NOT NULL, updated_key_version INT UNSIGNED NOT NULL, ciphertext_version INT UNISGNED NOT NULL, updated_ciphertext_version INT UNSIGNED NOT NULL);" 
-		"INSERT INTO Users VALUES(\"kevin\", \"kevin_priv_key.enc\",\"to_send.pdf.cpabe\", \"Audi_v_0 'year_v_0 = 2017' X5_v_0 'ECU_1_v_0 = 324' 'ECU_2_v_0 = 215' 'ECU_3_v_0 = 123'\", 0, 0, 0, 0);";
-		
-	open_db(&db);
-
-	if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK ) {
-
-		fprintf(stderr, "SQL error: %s\n", err_msg);
-
-		sqlite3_free(err_msg);
+		"key_version INT UNSIGNED NOT NULL, updated_key_version INT UNSIGNED NOT NULL, ciphertext_version INT UNSIGNED NOT NULL, updated_ciphertext_version INT UNSIGNED NOT NULL);" 
+		"INSERT INTO Users VALUES(\"blue_vehicle\", \"blue_vehicle_priv_key.enc\",\"to_send.pdf.cpabe\", \"CAR_MODEL_23_v_0 ECU_MODEL_2247_v_0 ECU_MODEL_2256_v_0 ECU_MODEL_2268_v_0\", 0, 0, 0, 0);"
+		"INSERT INTO Users VALUES(\"green_vehicle\", \"green_vehicle_priv_key.enc\",\"to_send.pdf.cpabe\", \"CAR_MODEL_21_v_0 ECU_MODEL_2246_v_0 ECU_MODEL_2248_v_0\", 0, 0, 0, 0);";
+	
+	rc = sqlite3_open_v2(DATABASE, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+	if(rc != SQLITE_OK){
+		fprintf(stderr, "SQL error (in creating database): %s (code %d)\n", err_msg, rc);
+		free(err_msg);
+		close_db(db);
+		return 0;
 	}
-	   
-	close_db(db);
-
+	
+	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+	if (rc != SQLITE_OK ) {
+		fprintf(stderr, "SQL error (in populating database): %s (code %d)\n", err_msg, rc);
+		free(err_msg);
+		close_db(db);
+		return 0;
+	}
+	free(err_msg);  
+	return close_db(db);
 }
 
 int update_attribute_set(sqlite3* db, const char* const restrict user, const char* const restrict new_attribute_set){
 
-	char* sql;
+	char* sql = NULL;
 	char* err_msg = "";
+	int rc;
 	
-	sql = sqlite3_mprintf("UPDATE Users SET current_attribute_set = \"%s\" WHERE User = \"%s\";", new_attribute_set, user);
-	
-	if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK ) {
-		fprintf(stderr, "SQL error: %s\n", err_msg);
-		sqlite3_free(err_msg);
-		sqlite3_free(sql);
+	if(asprintf(&sql, "UPDATE Users SET current_attribute_set = \"%s\" WHERE User = \"%s\";", new_attribute_set, user) < 0){
+		fprintf(stderr, "Error in constructing UPDATE (for attribute set) query\n");
+		if(sql) free(sql);
+		close_db(db);
 		return 0;
 	}
-	sqlite3_free(err_msg);
-	sqlite3_free(sql);
+	
+	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+	free(sql);
+	if (rc != SQLITE_OK ) {
+		fprintf(stderr, "SQL error in update_attribute_set(): %s (code %d)\n", err_msg, rc);
+		close_db(db);
+		free(err_msg);
+		return 0;
+	}
+	free(err_msg);
 	return 1;
 }
 
 int update_version(sqlite3* db, const char* const restrict user, const int type, const uint32_t new_version){
 
-	char* sql;
+	char* sql = NULL;
 	char* err_msg = "";
+	int rc;
 	
 	switch(type){
 		case KEY_VERSION:
-			sql = sqlite3_mprintf("UPDATE Users SET key_version = %u WHERE User = \"%s\";", new_version, user); break;
+			if(asprintf(&sql, "UPDATE Users SET key_version = %u WHERE User = \"%s\";", new_version, user) < 0){
+				fprintf(stderr, "Error in constructing UPDATE (for version) query\n");
+				if(sql) free(sql);
+				close_db(db);
+				return 0;
+			}
+			break;
 		case UPDATED_KEY_VERSION:
-			sql = sqlite3_mprintf("UPDATE Users SET updated_key_version = %u WHERE User = \"%s\";", new_version, user); break;
+			if(asprintf(&sql, "UPDATE Users SET updated_key_version = %u WHERE User = \"%s\";", new_version, user) < 0){
+				fprintf(stderr, "Error in constructing UPDATE (for version) query\n");
+				if(sql) free(sql);
+				close_db(db);
+				return 0;
+			}
+			break;
 		case CIPHERTEXT_VERSION:
-			sql = sqlite3_mprintf("UPDATE Users SET ciphertext_version = %u WHERE User = \"%s\";", new_version, user); break;
+			if(asprintf(&sql, "UPDATE Users SET ciphertext_version = %u WHERE User = \"%s\";", new_version, user) < 0){
+				fprintf(stderr, "Error in constructing UPDATE (for version) query\n");
+				if(sql) free(sql);
+				close_db(db);
+				return 0;
+			}
+			break;
 		case UPDATED_CIPHERTEXT_VERSION:
-			sql = sqlite3_mprintf("UPDATE Users SET updated_ciphertext_version = %u WHERE User = \"%s\";", new_version, user); break;
+			if(asprintf(&sql, "UPDATE Users SET updated_ciphertext_version = %u WHERE User = \"%s\";", new_version, user) < 0){
+				fprintf(stderr, "Error in constructing UPDATE (for version) query\n");
+				if(sql) free(sql);
+				close_db(db);
+				return 0;
+			}
+			break;
 		default:
 			fprintf(stderr, "Unknown updated operation (%d)\n", type);
+			close_db(db);
 			return 0;
 	}
-	if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK ) {
-		fprintf(stderr, "SQL error: %s\n", err_msg);
-		sqlite3_free(err_msg);
-		sqlite3_free(sql);
+	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+	free(sql);
+	if (rc != SQLITE_OK ) {
+		fprintf(stderr, "SQL error in update_key_version(): %s (code %d)\n", err_msg, rc);
+		free(err_msg);
+		close_db(db);
 		return 0;
 	}
-	sqlite3_free(err_msg);
-	sqlite3_free(sql);
+	free(err_msg);
 	return 1;
 }
 
@@ -191,7 +250,7 @@ gint comp_string( gconstpointer a, gconstpointer b){
 	return strcmp(a, b);
 }
 void bswabe_keygen_bis(const char* const restrict attribute_set, char* const restrict msk_file, bswabe_pub_t* restrict pub, char* const restrict out_file){
-	char** attrs;
+	char** attrs = 0;
 	GSList* alist;
 	GSList* ap;
 	guint n;
@@ -238,7 +297,7 @@ void bswabe_keygen_bis(const char* const restrict attribute_set, char* const res
 			parse_attribute(&alist, tmp);
 		}
 	}
-	free(tmp);
+	
 	if(!alist ){
 		fprintf(stderr, "Error in creating attribute list. Error: %s\n", strerror(errno));
 		exit(1);
@@ -258,10 +317,8 @@ void bswabe_keygen_bis(const char* const restrict attribute_set, char* const res
 	attrs[i] = 0;
 	
 	bswabe_keygen(pub, msk_file, out_file, NULL, attrs);
-	for(guint k = 0; k < n; k++){
-		free(attrs[k]);
-	}
 	free(attrs);
+	free(tmp);
 	g_slist_free(ap);
 	g_slist_free(alist);
 }

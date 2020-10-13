@@ -21,7 +21,7 @@
 ssize_t nbytes;
 int socket_fd;
 
-char* partial_updates_file = "partial_updates";
+char* partial_updates_file = "blue_vehicle_partial_updates";
 char* ciphertext_file = "to_send.pdf.cpabe";
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
@@ -332,7 +332,7 @@ void *pthread_routine(void *arg) {
 	user[username_size] = '\0';
 	
 	partial_updates_version = get_partial_updates_version(partial_updates_file);
-	cph_version = get_cph_version(ciphertext_file);
+	cph_version = get_cph_or_prv_version(ciphertext_file);
 	master_key_version = get_msk_version(msk_file);
 	
 	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){

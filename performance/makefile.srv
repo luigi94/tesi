@@ -48,7 +48,7 @@ $(SRC)/client_1.o: $(SRC)/client_1.c $(SRC)/shared.h $(SRC)/util.h
 	
 Client_1/client: $(SRC)/shared.o $(SRC)/util.o $(SRC)/client_1.o | Client_1
 	@echo "Creating client (Scenario 1) executable"
-	$(CC) -o $@ $^ $(COMMON_FLAGS) -lnsl -lsocket -lcrypto
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lsocket -lcrypto
 
 $(SRC)/server_1.o: $(SRC)/server_1.c $(SRC)/util.h $(SRC)/shared.h
 	@echo "Compiling server_1.c"
@@ -56,7 +56,7 @@ $(SRC)/server_1.o: $(SRC)/server_1.c $(SRC)/util.h $(SRC)/shared.h
 
 Server_1/server: $(SRC)/shared.o $(SRC)/util.o $(SRC)/server_1.o | Server_1
 	@echo "Creating server (Scenario 1) executable"
-	$(CC) -o $@ $^ $(COMMON_FLAGS) -lnsl -lsocket -pthread -lcrypto
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lsocket -pthread -lcrypto
 	
 	
 # ---------- SCENARIO 2 ----------
@@ -119,7 +119,19 @@ all: $(TARGETS)
 
 clean:
 	rm -f $(SRC)/*.o
-	rmdir Server_1/ Server_2/ Server_3/ Server_4/ Client_1/ Client_2/ Client_3/ Client_4/
+	if [ -d "Server_1" ]; then rm -Rf Server_1; fi
+	if [ -d "Server_2" ]; then rm -Rf Server_2; fi
+	if [ -d "Server_3" ]; then rm -Rf Server_3; fi
+	if [ -d "Server_4" ]; then rm -Rf Server_4; fi
+	if [ -d "Client_1" ]; then rm -Rf Client_1; fi
+	if [ -d "Client_2" ]; then rm -Rf Client_2; fi
+	if [ -d "Client_3" ]; then rm -Rf Client_3; fi
+	if [ -d "Client_4" ]; then rm -Rf Client_4; fi
+	if [ -d "Scenario_1" ]; then rm -Rf Scenario_1; fi
+	if [ -d "Scenario_2" ]; then rm -Rf Scenario_2; fi
+	if [ -d "Scenario_3" ]; then rm -Rf Scenario_3; fi
+	if [ -d "Scenario_4" ]; then rm -Rf Scenario_4; fi
+	rm -rf Server_1 Server_2 Server_3 Server_4 Client_1 Client_2 Client_3 Client_4 Scenario_1 Scenario_2 Scenario_3 Scenario_4
 
 Server_1:
 	mkdir -p $@

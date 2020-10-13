@@ -10,6 +10,7 @@
 #include <sys/sendfile.h>
 #include <glib.h>
 #include <pbc.h>
+#include <fcntl.h>
 
 #include "bswabe.h"
 #include "util.h"
@@ -24,13 +25,11 @@ char* ciphertext_file = "to_send.pdf.cpabe";
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* srvprvkey = "srvprvkey.pem";
-char* cltpubkey = "cltpubkey.pem";
-char* decryption_key = "kevin_priv_key";
-char* encrypted_decription_key = "kevin_priv_key.enc";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
     struct sockaddr_in client_address;
+    char* file_name;
 } pthread_arg_t;
 
 /* Thread routine to serve connection to client. */
@@ -39,67 +38,37 @@ void *pthread_routine(void *arg);
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
 
-void receive_username_size(const int new_socket_fd, size_t* const restrict username_size){
-	nbytes = recv(new_socket_fd, (void*)username_size, (size_t) sizeof(size_t), 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in receiving unsername size from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-	if((unsigned long) nbytes < sizeof(size_t)){
-		fprintf(stderr, "Username size not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-}
-void receive_username(const int new_socket_fd, char* const restrict user, const size_t username_size){
-	nbytes = recv(new_socket_fd, (void*)user, (size_t) username_size, 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in receiving username from socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-	if((size_t) nbytes < username_size){
-		fprintf(stderr, "Username not entirely received on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-}
+void send_data(const int new_socket_fd, const char* const restrict ready_file_name){
 
-void send_data(const int new_socket_fd, const unsigned char* const restrict to_send, const unsigned long total_len){
-
-  unsigned long offset;
+  long offset;
   unsigned long remaining_data;
+  int fd;
+  FILE* tmp;
   
-	nbytes = send(new_socket_fd, (void*)to_send, (size_t)LENGTH_FIELD_LEN, 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in sending firmware updates size on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-	if((size_t) nbytes < LENGTH_FIELD_LEN){
-		fprintf(stdout, "WARNING - Firmware updates size not entirely sent on socket %d\n", new_socket_fd);
-		close_socket(new_socket_fd);
-		exit(1);
-	}
+  tmp = fopen(ready_file_name, "r");
+  fseek(tmp, 0L, SEEK_END);
+  remaining_data = (unsigned long) ftell(tmp);
+  fclose(tmp);
+  
+  fd = open(ready_file_name, O_RDONLY);
 	
-	offset = LENGTH_FIELD_LEN;
-	remaining_data = total_len - LENGTH_FIELD_LEN;
+	offset = 0L;
 	while (remaining_data > 0) {
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
-		nbytes = send(new_socket_fd, (void*)(to_send + offset), count, 0);
-		fprintf(stdout, "Sent %ld bytes on expected %lu\n", nbytes, count);
+		nbytes = sendfile(new_socket_fd, fd, &offset, count);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in sending firmware updates chunk on socket %d. Error: %s\n", new_socket_fd, strerror(errno));
 			close_socket(new_socket_fd);
 			exit(1);
 		}
+		/*
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - Firmware updates chunk not entirely sent on socket %d\n", new_socket_fd);
 		}
+		*/
 		remaining_data -= nbytes;
-		offset += (unsigned long)nbytes;
 	}
+	close(fd);
 }
 
 void make_buffer_and_sign(const char* const restrict ciphertext_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
@@ -128,14 +97,13 @@ void make_buffer_and_sign(const char* const restrict ciphertext_file, unsigned c
 	*total_len = LENGTH_FIELD_LEN;
 	
 	/* Adding timestamp */
-	time_stamp = (unsigned long)time(NULL);
+	time_stamp = 0UL; //(unsigned long)time(NULL);
 	pointer = *total_len;
 	*total_len += (unsigned long)TIMESTAMP_LEN;
 	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
 		fprintf(stderr, "Error in reallocating memory for timestamp. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	fprintf(stdout, "Appended timestamp %lu\n", time_stamp);
 	memcpy((void*)(*buffer + pointer), (void*)&time_stamp, (size_t)TIMESTAMP_LEN);
   
   /* Adding ciphertext */
@@ -180,7 +148,6 @@ void make_buffer_and_sign(const char* const restrict ciphertext_file, unsigned c
 	
 	free(sgnt_buf);
 	
-	fprintf(stdout, "Total length to send: %lu\n", *total_len);
 }
 
 int main(int argc, char *argv[]) {
@@ -190,6 +157,11 @@ int main(int argc, char *argv[]) {
 	pthread_arg_t *pthread_arg;
 	pthread_t pthread;
 	socklen_t client_address_len;
+	
+	/* This variable will contain file to send */
+  unsigned char* buffer;
+  unsigned long total_len;
+  char* file_name = "ready";	// File ready to be sent
 
 	if(argc != 2){
 		fprintf(stderr, "Usage: ./server PORT\n");
@@ -245,6 +217,10 @@ int main(int argc, char *argv[]) {
 		perror("pthread_attr_setdetachstate");
 		exit(1);
 	}
+	
+	make_buffer_and_sign(ciphertext_file, &buffer, &total_len, srvprvkey);
+	write_file(buffer, total_len, file_name);
+	free(buffer);
 
 	while (1) {
 		/* Create pthread argument for each connection to client. */
@@ -262,10 +238,10 @@ int main(int argc, char *argv[]) {
 			free(pthread_arg);
 			continue;
 		}
-		fprintf(stdout, "New socket: %d\n", new_socket_fd);
 
 		/* Initialise pthread argument. */
 		pthread_arg->new_socket_fd = new_socket_fd;
+		pthread_arg->file_name = file_name;
 
 		/* Create thread to serve connection to client. */
 		if (pthread_create(&pthread, &pthread_attr, pthread_routine, (void *)pthread_arg) != 0) {
@@ -279,31 +255,16 @@ int main(int argc, char *argv[]) {
 
 void *pthread_routine(void *arg) {
 	pthread_arg_t *pthread_arg = (pthread_arg_t *)arg;
-  int new_socket_fd = pthread_arg->new_socket_fd;
+  int new_socket_fd;
+  char* file_name;
+  
+  new_socket_fd = pthread_arg->new_socket_fd;
+  file_name = pthread_arg->file_name;
   free(arg);
-	char* user;
-	size_t username_size;
-  unsigned char* buffer;
-  unsigned long total_len;
- 	
-  receive_username_size(new_socket_fd, &username_size);
-	username_size = username_size > (size_t) MAX_USER_LENGTH ? (size_t) MAX_USER_LENGTH : username_size;
-	if((user = (char*)malloc(username_size)) == NULL){
-		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close_socket(new_socket_fd);
-		exit(1);
-	}
-	
-	receive_username(new_socket_fd, user, username_size);
-	user[username_size] = '\0';
-	
-	make_buffer_and_sign(ciphertext_file, &buffer, &total_len, srvprvkey);
 
-	send_data(new_socket_fd, buffer, total_len);
+	send_data(new_socket_fd, file_name);
 	
   close_socket(new_socket_fd);
-  free(user);
-  free(buffer);
 	
   return NULL;
 }

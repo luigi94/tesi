@@ -1,78 +1,52 @@
 #!/bin/bash
-make clean
-make all
 
-#sshpass -p 'root' ssh root@192.168.1.200 "mkdir -p /root/Documents/tesi/performance/Client"
+mkdir Scenario_1
+mkdir Scenario_2
+mkdir Scenario_3
+mkdir Scenario_3/r1
+mkdir Scenario_3/r2
+mkdir Scenario_3/r3
 
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out srvprvkey.pem
-openssl pkey -in srvprvkey.pem -pubout -out srvpubkey.pem
+cd Server_1
+echo "SCENARIO 1"
+./server 8881 &
+sshpass -p 'root' ssh root@192.168.1.200 "cd /root/Documents/tesi/performance/Client_1 && /root/Documents/tesi/performance/Client_1/client 192.168.1.206 8881"
+echo "Waiting for kill server 1"
+fuser -k 8881/tcp
+echo "Server 1 killed"
+cd ..
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_1/Scenario_1.csv Scenario_1
 
-cpabe-setup
+cd Server_2
+echo "SCENARIO 2"
+./server 8882 &
+sshpass -p 'root' ssh root@192.168.1.200 "cd /root/Documents/tesi/performance/Client_2 && /root/Documents/tesi/performance/Client_2/client 192.168.1.206 8882"
+fuser -k 8882/tcp
+cd ..
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_2/Scenario_2_blue_vehicle.csv Scenario_2
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_2/Scenario_2_green_vehicle.csv Scenario_2
 
-cpabe-keygen -o kevin_priv_key pub_key master_key business_staff strategy_team 'executive_level = 7' 'office = 2362' 'hire_date = '`date +%s`
-cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
+cd Server_3
+echo "SCENARIO 3"
+./server 8883 &
+sshpass -p 'root' ssh root@192.168.1.200 "cd /root/Documents/tesi/performance/Client_3 && /root/Documents/tesi/performance/Client_3/client 192.168.1.206 8883"
+fuser -k 8883/tcp
+cd ..
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_blue_vehicle.csv Scenario_3/r1
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_green_vehicle.csv Scenario_3/r1
 
-openssl genrsa -out cltprvkey.pem 3072
-openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
+cd Server_3
+./server 8884 &
+sshpass -p 'root' ssh root@192.168.1.200 "cd /root/Documents/tesi/performance/Client_3 && /root/Documents/tesi/performance/Client_3/client 192.168.1.206 8884"
+fuser -k 8884/tcp
+cd ..
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_blue_vehicle.csv Scenario_3/r2
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_green_vehicle.csv Scenario_3/r2
 
-cp -f srvprvkey.pem Server_1
-cp -f srvprvkey.pem Server_2
-cp -f srvprvkey.pem Server_3
-cp -f srvprvkey.pem Server_4
-cp -f srvpubkey.pem Client_1
-cp -f srvpubkey.pem Client_2
-cp -f srvpubkey.pem Client_3
-mv -f srvpubkey.pem Client_4
-#sshpass -p 'root' scp srvpubkey.pem root@192.168.1.200:/root/Documents/tesi/performance/Client
-
-cp -f to_send.pdf Server_1
-cp -f to_send.pdf Server_3
-
-cp -f master_key Server_2
-cp -f master_key Server_3
-
-cp -f pub_key Server_2
-cp -f pub_key Server_3
-cp -f pub_key Client_2
-cp -f pub_key Client_3
-
-#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
-#sshpass -p 'root' scp kevin_priv_key root@192.168.1.200:/root/Documents/tesi/performance/Client
-
-cp -f kevin_priv_key Client_2
-cp -f kevin_priv_key Client_3
-cp -f kevin_priv_key Client_4
-cp -f to_send.pdf.cpabe Server_2
-cp -f to_send.pdf.cpabe Server_4
-		
-cp -f cltpubkey.pem Server_3
-#sshpass -p 'root' scp cltprvkey.pem root@192.168.1.200:/root/Documents/tesi/performance/Client
-cp -f cltprvkey.pem Client_3
-#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
-
-
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-
-cp -f master_key Server_4
-cp -f pub_key Server_4
-cp -f master_key Client_4
-cp -f pub_key Client_4
-#sshpass -p 'root' scp pub_key root@192.168.1.200:/root/Documents/tesi/performance/Client
-#sshpass -p 'root' scp kevin_priv_key root@192.168.1.200:/root/Documents/tesi/performance/Client
-cp -f partial_updates Server_4
-cp -f upd_key Server_4
-
-rm -f cltprvkey.pem
-rm -f cltpubkey.pem
-rm -f kevin_priv_key
-rm -f master_key
-rm -f partial_updates
-rm -f pub_key
-rm -f srvprvkey.pem
-rm -f to_send.pdf.cpabe
-rm -f upd_key
-
-chmod 777 -R .
+cd Server_3
+./server 8885 &
+sshpass -p 'root' ssh root@192.168.1.200 "cd /root/Documents/tesi/performance/Client_3 && /root/Documents/tesi/performance/Client_3/client 192.168.1.206 8885"
+fuser -k 8885/tcp
+cd ..
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_blue_vehicle.csv Scenario_3/r3
+sshpass -p 'root' scp root@192.168.1.200:/root/Documents/tesi/performance/Client_3/Scenario_3_green_vehicle.csv Scenario_3/r3

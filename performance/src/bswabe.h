@@ -85,7 +85,7 @@ void bswabe_enc( bswabe_pub_t* pub, char* in_file, char* out_file, char* policy,
   Returns true if decryption succeeded, false if this key does not
   satisfy the policy of the ciphertext (in which case m is unaltered).
 */
-int bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer, FILE* f_results);
+int bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* file_buffer);
 
 /*
 	Print the Master Key
@@ -157,7 +157,7 @@ void serialize_element( GByteArray* b, element_t e );
 void unserialize_element( GByteArray* b, int* offset, element_t e );
 char* unserialize_string( GByteArray* b, int* offset );
 
-uint32_t get_cph_version(char* cph_file);
+uint32_t get_cph_or_prv_version(char* cph_or_prv_file);
 uint32_t get_msk_version(char* msk_file);
 uint32_t get_partial_updates_version(char* partial_updates_file);
 

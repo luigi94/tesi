@@ -28,7 +28,7 @@ void close_socket(const int socket_fd){
 			fprintf(stdout, "Expired close timeout\n");
 			break;
 		}
-		if(usleep((useconds_t) 100000) != 0){
+		if(usleep((useconds_t) 250000) != 0){
 			fprintf(stderr, "Error in usleep(). Error: %s\n", strerror(errno));
 			exit(1);
 		}
@@ -43,6 +43,7 @@ void close_socket(const int socket_fd){
 		}
 		else if(old < info.tcpi_unacked){
 			fprintf(stderr, "Remaining acks have increased... what is going on?\n");
+			now = get_milliseconds();
 		}
 	}
 	

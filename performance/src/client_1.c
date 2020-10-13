@@ -7,48 +7,24 @@
 #include <errno.h>
 #include <time.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #include "util.h"
 #include "shared.h"
+#include "parameters.h"
 
 ssize_t nbytes;
 int socket_fd;	
 
 char* cleartext_file = "received.pdf";
 char* pubkey_file_name = "srvpubkey.pem";
+char* results_file_name = "Scenario_1.csv";
 
-void send_username_size(const int socket_fd, const size_t* const restrict username_size){
-	nbytes = send(socket_fd, (void*)&(*username_size), (size_t)LENGTH_FIELD_LEN, 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in sending unsername size from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
-	}
-	if((unsigned long) nbytes < sizeof(size_t)){
-		fprintf(stderr, "Username size not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
-	}
-}
-void send_username(const int socket_fd, const char* const restrict user, const size_t username_size){
-	nbytes = send(socket_fd, (void*)user, username_size, 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in sending unsername from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
-	}
-	if((unsigned long) nbytes < username_size){
-		fprintf(stderr, "Username not entirely sent on socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
-	}
-}
 void recv_data(const int socket_fd, unsigned char* restrict* const restrict data_buf, const unsigned long* const restrict data_size){
 	unsigned long remaining_data;
 	unsigned long pointer;
 	
 	nbytes = recv(socket_fd, (void*)&(*data_size), (size_t)LENGTH_FIELD_LEN, 0);
-	fprintf(stdout, "Received %ld bytes on socket %d for data size\n", nbytes, socket_fd);
 	if(nbytes < 0){
 		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
 		close_socket(socket_fd);
@@ -59,8 +35,6 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 		close_socket(socket_fd);
 		exit(1);
 	}
-	
-	fprintf(stdout, "Data size = %lu\n", *data_size);
 	
 	if((*data_buf = (unsigned char*)malloc((size_t)*data_size)) == NULL){
 		fprintf(stderr, "Error in allocating memeory for data size buffer. Error: %s\n", strerror(errno));
@@ -73,27 +47,25 @@ void recv_data(const int socket_fd, unsigned char* restrict* const restrict data
 	while(remaining_data > 0){
 		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
 		nbytes = recv(socket_fd, (void*) (*data_buf + pointer), count, 0);
-		fprintf(stdout, "Received %ld bytes for file from socket %d\n", nbytes, socket_fd);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
 			close_socket(socket_fd);
 			exit(1);
 		}
+		/*
 		if((size_t) nbytes < count){
 			fprintf(stdout, "WARNING - File not entirely received from socket %d\n", socket_fd);
 		}
+		*/
 		remaining_data -= (unsigned long)nbytes;
 		pointer += (unsigned long) nbytes;
-		fprintf(stdout, "CLIENT - Received %ld bytes. Remaining: %lu bytes\n", nbytes, remaining_data);
 	}
-	
-	fprintf(stdout, "Received %lu bytes\n", pointer);
 }
 
-void check_freshness(const unsigned long now, const unsigned long time_stamp){
-	fprintf(stdout, "Received time stamp is %lu, current time stamp is %lu\n", time_stamp, now);
-	if(now - time_stamp > (unsigned long)FRESHNESS_THRESHOLD){
-		fprintf(stderr, "Received data are outdated\n");
+void check_freshness(const unsigned long old_version, const unsigned long version){
+	if(old_version != version){
+		fprintf(stderr, "Received outdated data\n");
+		close_socket(socket_fd);
 		exit(1);
 	}
 }
@@ -106,9 +78,6 @@ int main(int argc, char *argv[]) {
 	struct hostent *server_host;
 	struct sockaddr_in server_address;
 	
-	size_t username_size;
-	char* user;
-	
 	unsigned char* cleartext_buf;
 	unsigned char* data_buf;
 	unsigned long data_size;
@@ -116,11 +85,17 @@ int main(int argc, char *argv[]) {
 	
 	unsigned long pointer;
 	
-	unsigned long time_stamp;
-	unsigned long now;
+	unsigned long old_version = 0UL;
+	unsigned long version;
+	
+	FILE* f_results;
+	struct timeval start;
+	struct timeval end;
+	
+	size_t iteration;
 
-	if (argc != 4) {
-		fprintf(stderr, "USAGE: ./client server_address port_number user\n");
+	if (argc != 3) {
+		fprintf(stderr, "USAGE: ./client server_address port_number\n");
 		exit(1);
 	}
 	
@@ -129,73 +104,77 @@ int main(int argc, char *argv[]) {
 	
 	signal(SIGINT, signal_handler);
 	
-	if((user = (char*)malloc(MAX_USER_LENGTH)) == NULL){
-		fprintf(stderr, "Error in allocating memory for username. Error: %s\n", strerror(errno));
-		close_socket(socket_fd);
+	if((f_results = fopen(results_file_name, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", results_file_name, strerror(errno));
 		exit(1);
 	}
-	strncpy(user, argv[3], MAX_USER_LENGTH);
-	user[MAX_USER_LENGTH - 1] = '\0';
-	username_size = strlen(user);
 	
-	/* Get server host from server name. */
-	server_host = gethostbyname(server_name);
-
-	/* Initialise IPv4 server address with server host. */
-	memset(&server_address, 0, sizeof server_address);
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(server_port);
-	memcpy(&server_address.sin_addr.s_addr, server_host->h_addr, server_host->h_length);
-
-	/* Create TCP socket. */
-	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("socket");
-		close_socket(socket_fd);
-		exit(1);
-	}
-
-	/* Connect to socket with server address. */
-	if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof server_address) == -1) {
-		perror("connect");
-		exit(1);
-	}
-
-	send_username_size(socket_fd, &username_size);
-
-	send_username(socket_fd, user, username_size);
+	fprintf(f_results, "Iteration, Request to download time, Total length, Plaintext length\n");
 	
-	recv_data(socket_fd, &data_buf, &data_size);
-	
-	close_socket(socket_fd);
-	
-	/* I take the current time_stamp before the signature verification 
-	because this procedure may take a long time */
-	now = (unsigned long)time(NULL);
-	
-	verify(data_buf, &data_size, pubkey_file_name);
-	
-	pointer = (unsigned long) LENGTH_FIELD_LEN;
-	
-	/* Get timestamp and check freshness */
-	memcpy((void*)&time_stamp, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
-	check_freshness(now, time_stamp);
-	
-	pointer += (unsigned long) TIMESTAMP_LEN;
-	
-	cleartext_size = data_size - pointer;
-	if((cleartext_buf = (unsigned char*)malloc(cleartext_size)) == NULL){
-		fprintf(stdout, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	fprintf(stdout, "Ciphertext size: %lu\n", cleartext_size);
-	memcpy((void*)cleartext_buf, (void*)(data_buf + pointer), cleartext_size);
-	
-	free(data_buf);
-	
-	write_file(cleartext_buf, cleartext_size, cleartext_file);
+	for(iteration = 0UL; iteration < ITERATIONS; ++iteration){
 		
-	free(cleartext_buf);
-	free(user);
+		/* Get server host from server name. */
+		server_host = gethostbyname(server_name);
+
+		/* Initialise IPv4 server address with server host. */
+		memset(&server_address, 0, sizeof server_address);
+		server_address.sin_family = AF_INET;
+		server_address.sin_port = htons(server_port);
+		memcpy(&server_address.sin_addr.s_addr, server_host->h_addr, server_host->h_length);
+
+		/* Create TCP socket. */
+		if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+			perror("socket");
+			close_socket(socket_fd);
+			exit(1);
+		}
+
+		/* Connect to socket with server address. */
+		if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof server_address) == -1) {
+			perror("connect");
+			exit(1);
+		}
+		
+		if(gettimeofday(&start, NULL) != 0){
+			fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		
+		recv_data(socket_fd, &data_buf, &data_size);
+		
+		verify(data_buf, &data_size, pubkey_file_name);
+		
+		pointer = (unsigned long) LENGTH_FIELD_LEN;
+		
+		memcpy((void*)&version, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
+		check_freshness(version, old_version);
+		
+		pointer += (unsigned long) TIMESTAMP_LEN;
+		
+		cleartext_size = data_size - pointer;
+		if((cleartext_buf = (unsigned char*)malloc(cleartext_size)) == NULL){
+			fprintf(stderr, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		memcpy((void*)cleartext_buf, (void*)(data_buf + pointer), cleartext_size);
+		
+		free(data_buf);
+		
+		write_file(cleartext_buf, cleartext_size, cleartext_file);
+		
+		if(gettimeofday(&end, NULL) != 0){
+			fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		
+		fprintf(f_results, "%lu, %lu, %lu, %lu\n", iteration + 1UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec), data_size, cleartext_size);
+		
+		close_socket(socket_fd);
+			
+		free(cleartext_buf);
+	}
+	
+	fclose(f_results);
 	
 	return 0;
 }

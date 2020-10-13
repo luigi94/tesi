@@ -22,7 +22,7 @@ typedef struct{
 } attribute_s;
 
 typedef struct {
-	char encryped_decryption_key_name[MAX_ENCRYPTED_DEC_KEY_NAME_LEN];
+	char encrypted_decryption_key_name[MAX_ENCRYPTED_DEC_KEY_NAME_LEN];
 	char encrypted_file_name[MAX_FILE_NAME_LEN];
 	char current_attribute_set[MAX_ATTRIBUTE_SET_LEN];
 	uint32_t key_version;
@@ -31,17 +31,17 @@ typedef struct {
 	uint32_t updated_ciphertext_version;
 } user_info;
 
-void open_db(sqlite3** db);
+int open_db_r(sqlite3** const restrict db);
 
-void close_db(sqlite3* db);
+int open_db_rw(sqlite3** const restrict db);
 
-void check_error(const int rc, sqlite3* db);
+int close_db(sqlite3* db);
 
-void get_user_info(sqlite3* db, const char* const restrict user, user_info* restrict* const restrict ui);
+int get_user_info(sqlite3* db, const char* const restrict user, user_info* restrict* const restrict ui);
 
 int update_attribute_set(sqlite3* db, const char* const restrict user, const char* const restrict new_attribute_set);
 
-void initialize_db(sqlite3* db);
+int initialize_db(sqlite3* db);
 
 int update_version(sqlite3* db, const char* const restrict user, const int type, const uint32_t new_version);
 
