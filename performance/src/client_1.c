@@ -16,7 +16,7 @@
 ssize_t nbytes;
 int socket_fd;	
 
-char* cleartext_file = "received.pdf";
+char* cleartext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* pubkey_file_name = "srvpubkey.pem";
 char* results_file_name = "Scenario_1.csv";
 

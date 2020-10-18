@@ -19,7 +19,7 @@
 ssize_t nbytes;
 int socket_fd;	
 
-char* cleartext_file = "received.pdf";
+char* cleartext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* pub_file = "pub_key";
 char* prv_file = "blue_vehicle_priv_key";
 char* pubkey_file_name = "srvpubkey.pem";

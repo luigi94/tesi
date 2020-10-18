@@ -33,7 +33,7 @@ char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* srvprvkey = "srvprvkey.pem";
 char* policy = "ECU_MODEL_2247_v_0 or (CAR_MODEL_21_v_0 and ECU_MODEL_2248_v_0)"; // ECU_MODEL_2247 or (CAR_MODEL_21 and ECU_MODEL_2248)
-char* to_encrypt = "to_send.pdf";
+char* to_encrypt = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* cltpubkey = "cltpubkey.pem";
 char* user = "green_vehicle";
 

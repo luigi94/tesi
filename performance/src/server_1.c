@@ -18,7 +18,7 @@
 ssize_t nbytes;
 int socket_fd;
 
-char* to_send_file = "to_send.pdf";
+char* to_send_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* prvkey_file_name = "srvprvkey.pem";
 
 typedef struct pthread_arg_t {

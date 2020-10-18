@@ -136,10 +136,10 @@ int initialize_db(sqlite3* db){
 	// CAR_MODEL_21_v_0 ECU_MODEL_2246_v_0 ECU_MODEL_2248_v_0
 	int rc;
 	const char* const sql = "DROP TABLE IF EXISTS Users;"
-		"CREATE TABLE Users(User CHAR(32) NOT NULL PRIMARY KEY, encrypted_decryption_key CHAR(32) NOT NULL, encrypted_file CHAR(32) NOT NULL, current_attribute_set CHAR(256) NOT NULL, "
+		"CREATE TABLE Users(User CHAR(32) NOT NULL PRIMARY KEY, encrypted_decryption_key CHAR(32) NOT NULL, encrypted_file CHAR(64) NOT NULL, current_attribute_set CHAR(256) NOT NULL, "
 		"key_version INT UNSIGNED NOT NULL, updated_key_version INT UNSIGNED NOT NULL, ciphertext_version INT UNSIGNED NOT NULL, updated_ciphertext_version INT UNSIGNED NOT NULL);" 
-		"INSERT INTO Users VALUES(\"blue_vehicle\", \"blue_vehicle_priv_key.enc\",\"to_send.pdf.cpabe\", \"CAR_MODEL_23_v_0 ECU_MODEL_2247_v_0 ECU_MODEL_2256_v_0 ECU_MODEL_2268_v_0\", 0, 0, 0, 0);"
-		"INSERT INTO Users VALUES(\"green_vehicle\", \"green_vehicle_priv_key.enc\",\"to_send.pdf.cpabe\", \"CAR_MODEL_21_v_0 ECU_MODEL_2246_v_0 ECU_MODEL_2248_v_0\", 0, 0, 0, 0);";
+		"INSERT INTO Users VALUES(\"blue_vehicle\", \"blue_vehicle_priv_key.enc\",\"vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.cpabe\", \"CAR_MODEL_23_v_0 ECU_MODEL_2247_v_0 ECU_MODEL_2256_v_0 ECU_MODEL_2268_v_0\", 0, 0, 0, 0);"
+		"INSERT INTO Users VALUES(\"green_vehicle\", \"green_vehicle_priv_key.enc\",\"vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.cpabe\", \"CAR_MODEL_21_v_0 ECU_MODEL_2246_v_0 ECU_MODEL_2248_v_0\", 0, 0, 0, 0);";
 	
 	rc = sqlite3_open_v2(DATABASE, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 	if(rc != SQLITE_OK){

@@ -20,7 +20,7 @@
 ssize_t nbytes;
 int socket_fd;
 
-char* cleartext_file = "received.pdf";
+char* cleartext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* pub_file = "pub_key";
 char* prv_file = "priv_key";
 char* pubkey_file_name = "srvpubkey.pem";
@@ -39,17 +39,25 @@ void recv_flag(uint8_t* const restrict flag){
 void recv_data(unsigned char* restrict* const restrict data_buf, const unsigned long* const restrict data_size){
 	unsigned long remaining_data;
 	unsigned long pointer;
+	size_t count;
 	
-	nbytes = recv(socket_fd, (void*)&(*data_size), (size_t)LENGTH_FIELD_LEN, 0);
-	if(nbytes < 0){
-		fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
-	}
-	if((size_t) nbytes < (size_t)LENGTH_FIELD_LEN){
-		fprintf(stderr, "File size not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
-		close_socket(socket_fd);
-		exit(1);
+	remaining_data = (unsigned long)LENGTH_FIELD_LEN;
+	pointer = 0UL;
+	while(remaining_data > 0){
+		count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
+		nbytes = recv(socket_fd, (void*)(&(*data_size) + pointer), count, 0);
+		if(nbytes < 0){
+			fprintf(stderr, "Error in receiving file size from socket %d. Error: %s\n", socket_fd, strerror(errno));
+			close_socket(socket_fd);
+			exit(1);
+		}
+		/*
+		if((size_t) nbytes < (size_t)LENGTH_FIELD_LEN){
+			fprintf(stdout, "WARNING - File size not entirely received from socket %d. Error: %s\n", socket_fd, strerror(errno));
+		}
+		*/
+		remaining_data -= (unsigned long)nbytes;
+		pointer += (unsigned long) nbytes;
 	}
 	
 	if((*data_buf = (unsigned char*)malloc((size_t)*data_size)) == NULL){
@@ -62,7 +70,7 @@ void recv_data(unsigned char* restrict* const restrict data_buf, const unsigned 
 	remaining_data = *data_size - (unsigned long)LENGTH_FIELD_LEN;
 	pointer = (unsigned long) LENGTH_FIELD_LEN;
 	while(remaining_data > 0){
-		size_t count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
+		count = (size_t) (MAX_BUF < remaining_data ? MAX_BUF : remaining_data);
 		nbytes = recv(socket_fd, (void*) (*data_buf + pointer), count, 0);
 		if(nbytes < 0){
 			fprintf(stderr, "Error in receiving file from socket %d. Error: %s\n", socket_fd, strerror(errno));
@@ -161,7 +169,6 @@ int main(int argc, char *argv[]) {
 			perror("connect");
 			exit(1);
 		}
-		
 		
 		if(iteration % REQUESTS == 0){
 			//fprintf(stdout, "Iteration %lu\n", iteration);

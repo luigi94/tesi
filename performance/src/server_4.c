@@ -22,7 +22,7 @@ ssize_t nbytes;
 int socket_fd;
 
 char* partial_updates_file = "blue_vehicle_partial_updates";
-char* ciphertext_file = "to_send.pdf.cpabe";
+char* ciphertext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.cpabe";
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
 char* upd_file = "upd_key";

@@ -1,6 +1,6 @@
 #define MAX_USER_LEN 32
 #define MAX_ENCRYPTED_DEC_KEY_NAME_LEN 32
-#define MAX_FILE_NAME_LEN 32
+#define MAX_FILE_NAME_LEN 64
 #define MAX_ATTRIBUTE_SET_LEN 256
 #define DATABASE "test.db"
 
