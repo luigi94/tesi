@@ -24,11 +24,21 @@ chmod 777 document.txt
 cpabe-setup
 
 cpabe-keygen -o sara_priv_key -p dummy pub_key master_key \
-    sysadmin it_department 'office = 1431' 'hire_date = '`date +%s`
+    sysadmin it_department 'office = 1431'
 
 cpabe-keygen -o kevin_priv_key pub_key master_key \
     business_staff strategy_team 'executive_level = 7' \
-    'office = 2362' 'hire_date = '`date +%s`
+    'office = 2362'
+    
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
+cpabe-updatemk pub_key master_key upd_key
+    
+<< 'MULTILINE-COMMENT'
+
+cpabe-update-partial-updates partial_updates upd_key pub_key
+cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
     
 cpabe-enc -k pub_key to_send.pdf '(sysadmin and (hire_date < 946702800 or security_team or prova6)) or (business_staff and 2 of (executive_level >= 5, audit_group, strategy_team, prova1, prova2, prova3))'
 
@@ -48,9 +58,9 @@ cpabe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
 cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
 cpabe-updatecp to_send.pdf.cpabe upd_key pub_key
 
-cpabe-dec pub_key kevin_priv_key to_send.pdf.cpabe
+cpabe-dec pub_key kevin_priv_key to_send.pdf.cpabe -o decrypted.pdf
 
-<< 'MULTILINE-COMMENT'
+
 MULTILINE-COMMENT
 chmod 777 -R .
 echo "END"
