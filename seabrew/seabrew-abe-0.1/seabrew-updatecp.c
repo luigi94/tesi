@@ -12,11 +12,12 @@
 
 
 char* usage =
-"Usage: cpabe-updatecp [OPTION ...] CPH UPD_KEY PUB_KEY\n"
+"Usage: seabrew-abe-updatecp [OPTION ...] CPH UPD_KEY PUB_KEY\n"
 "\n"
 "Blindly update the cipher-text CPH using the update key UPD_KEY\n"
 "and public key PUB_KEY parameters.\n"
-"The new ciphertext is updated up to UPD_KEY's version. \n"
+"\n"
+"The new ciphertext is updated up to UPD_KEY's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -42,7 +43,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-updatedk");
+			printf(SEABREW_ABE_VERSION, "-seabrew-updatecp");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )

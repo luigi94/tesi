@@ -1,8 +1,8 @@
 [see also]
-.BR cpabe-setup (1),
-.BR cpabe-enc (1),
-.BR cpabe-keygen (1),
-.BR cpabe-dec (1),
-.BR cpabe-updatemk (1),
-.BR cpabe-updatepk (1),
-.BR cpabe-updatedk (1)
+.BR seabrew-abe-setup (1),
+.BR seabrew-abe-keygen (1),
+.BR seabrew-abe-enc (1),
+.BR seabrew-abe-dec (1),
+.BR seabrew-abe-updatemk (1),
+.BR seabrew-abe-update-partial-updates (1),
+.BR seabrew-abe-update-pub-and-prv-partial (1)

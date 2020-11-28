@@ -9,12 +9,14 @@
 #include "policy_lang.h"
 
 char* usage =
-"Usage: cpabe-enc [OPTION ...] PUB_KEY FILE [POLICY]\n"
+"Usage: seabrew-abe-enc [OPTION ...] PUB_KEY FILE [POLICY]\n"
 "\n"
 "Encrypt FILE under the decryption policy POLICY using public key\n"
 "PUB_KEY. The encrypted file will be written to FILE.cpabe unless\n"
 "the -o option is used. The original file will be removed. If POLICY\n"
 "is not specified, the policy will be read from stdin.\n"
+"\n"
+"Additionally, set ciphertext's version to PUB_KEY's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -45,7 +47,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-enc");
+			printf(SEABREW_ABE_VERSION, "-seabrew-enc");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-k") || !strcmp(argv[i], "--keep-input-file") )

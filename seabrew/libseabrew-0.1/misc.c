@@ -137,22 +137,22 @@ GByteArray* seabrew_bswabe_upd_serialize(seabrew_bswabe_upd_t* upd ){
 	return b;
 }
 
-GByteArray* seabrew_bswabe_build_partial_updates_and_serialize(seabrew_bswabe_msk_t* msk, seabrew_bswabe_prv_t* prv, seabrew_bswabe_pub_t* pub ){
+GByteArray* seabrew_bswabe_partial_updates_serialize(seabrew_bswabe_partial_updates_t* partial_updates ){
 	GByteArray* b;
 	unsigned char* buf;
 	b = g_byte_array_new();
 	
-	serialize_uint32(b, msk->version);
+	serialize_uint32(b, partial_updates->version);
 	
 	if((buf = (unsigned char*) malloc(128)) == NULL){
 		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	
-	element_to_bytes(buf, pub->pub_f->h);
+	element_to_bytes(buf, partial_updates->pub_h);
 	g_byte_array_append(b, buf, 128);
 	
-	element_to_bytes(buf, prv->prv_f->d);
+	element_to_bytes(buf, partial_updates->prv_d);
 	g_byte_array_append(b, buf, 128);
 	
 	free(buf);

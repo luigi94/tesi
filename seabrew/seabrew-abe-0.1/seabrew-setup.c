@@ -10,10 +10,12 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: cpabe-setup [OPTION ...]\n"
+"Usage: seabrew-abe-setup [OPTION ...]\n"
 "\n"
 "Generate system parameters, a public key, and a master secret key\n"
-"for use with cpabe-keygen, cpabe-enc, and cpabe-dec.\n"
+"for use with seabrew-abe-keygen, seabrew-abe-enc, and seabrew-abe-dec.\n"
+"\n"
+"Additionally, initialize their versions at 0.\n"
 "\n"
 "Output will be written to the files \"pub_key\" and \"master_key\"\n"
 "unless the --output-public-key or --output-master-key options are\n"
@@ -44,7 +46,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-setup");
+			printf(SEABREW_ABE_VERSION, "-seabrew-setup");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-p") || !strcmp(argv[i], "--output-public-key") )

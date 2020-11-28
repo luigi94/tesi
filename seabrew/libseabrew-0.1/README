@@ -1,13 +1,18 @@
-This software provides several tools implementing a scheme for
-"ciphertext-policy attribute based encryption" (CP-ABE).
+This library provides all the primitives that implement the
+SEA-BREW (Scalable Attribute-Based Encryption Revocable Scheme)
+scheme.
 
-To install this software, you will need to have the Pairing-Based
-Cryptography (PBC) library installed. You can get it from the
-following page:
+The library has been entirely built on the pre-existing library
+implemented by John Bethencourt, Amit Sahai and Brent Waters.
+For more information refer to:
+	
+	http://hms.isi.jhu.edu/acsc/cpabe/
+	
+To install this software, you will need to have the libswabe
+library installed. You can get it from the following page:
 
-   http://crypto.stanford.edu/pbc/
-
-For more information on CP-ABE and a tutorial on using the tools, see
-the project homepage:
-
-   http://acsc.csl.sri.com/cpabe/
+   http://hms.isi.jhu.edu/acsc/cpabe/libbswabe-0.9.tar.gz
+   
+For more information about SEA-BREW scheme and its applications
+refer to:
+	http:// link al paper ?

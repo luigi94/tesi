@@ -2,13 +2,13 @@
 
 Generating a key for a new employee Sara:
 
-  $ cpabe-keygen -o sara_priv_key pub_key master_key \\
+  $ seabrew-abe-keygen -o sara_priv_key -p sara_partial_updates pub_key master_key \\
 .br
       sysadmin it_department
 
-Generating a key with more complicated attributes:
+Generating a key with more complicated attributes (partial updates will be written to default file name):
 
-  $ cpabe-keygen -o kevin_priv_key pub_key master_key \\
+  $ seabrew-abe-keygen -o kevin_priv_key pub_key master_key \\
 .br
       business_staff strategy_team 'executive_level = 7#4' \\
 .br
@@ -18,6 +18,10 @@ Note the usage of date (1) as a convenient way of storing a time in a
 numerical attribute.
 
 [see also]
-.BR cpabe-setup (1),
-.BR cpabe-enc (1),
-.BR cpabe-dec (1)
+.BR seabrew-abe-setup (1),
+.BR seabrew-abe-enc (1),
+.BR seabrew-abe-dec (1),
+.BR seabrew-abe-updatemk (1),
+.BR seabrew-abe-updatecp (1),
+.BR seabrew-abe-update-partial-updates (1),
+.BR seabrew-abe-update-pub-and-prv-partial (1)

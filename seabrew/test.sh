@@ -1,5 +1,5 @@
 #!/bin/bash
-rm -f upd_key
+rm -f dummy kevin_priv_key master_key partial_updates pub_key sara_priv_key upd_key decrypted.pdf to_send.pdf.cpabe
 
 seabrew-abe-setup
 
@@ -37,31 +37,9 @@ seabrew-abe-updatemk pub_key master_key upd_key
 seabrew-abe-update-partial-updates partial_updates upd_key pub_key
 seabrew-abe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
 
-#cpabe-updatepk pub_key upd_key
-
-#cpabe-updatedk kevin_priv_key upd_key pub_key
-
 seabrew-abe-updatecp to_send.pdf.cpabe upd_key pub_key
 seabrew-abe-updatecp to_send.pdf.cpabe upd_key pub_key
 
-seabrew-abe-dec pub_key kevin_priv_key to_send.pdf.cpabe -o decrypted.pdf
+seabrew-abe-dec -k pub_key kevin_priv_key to_send.pdf.cpabe -o decrypted.pdf
 
-<< 'MULTILINE-COMMENT'
-
-cpabe-updatemk pub_key master_key upd_key
-
-cpabe-updatepk pub_key upd_key
-
-cpabe-updatemk pub_key master_key upd_key
-
-cpabe-updatepk pub_key upd_key
-
-cpabe-updatedk kevin_priv_key upd_key pub_key
-
-cpabe-updatecp document.txt.cpabe upd_key pub_key
-cpabe-updatecp document.txt.cpabe upd_key pub_key
-
-MULTILINE-COMMENT
-chmod 777 -R .
 echo "END"
-

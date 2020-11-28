@@ -11,7 +11,7 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: cpabe-keygen [OPTION ...] PUB_KEY MASTER_KEY ATTR [ATTR ...]\n"
+"Usage: seabrew-abe-keygen [OPTION ...] PUB_KEY MASTER_KEY ATTR [ATTR ...]\n"
 "\n"
 "Generate a key with the listed attributes using public key PUB_KEY and\n"
 "master secret key MASTER_KEY. Output will be written to the file\n"
@@ -21,15 +21,18 @@ char* usage =
 "attributes are simply any string of letters, digits, and underscores\n"
 "beginning with a letter.\n"
 "\n"
+"Additionally, set the generated key's version to the master key's version\n"
+"and build the partial_updates.\n"
+"\n"
 "Numerical attributes are specified as `attr = N', where N is a non-negative\n"
 "integer less than 2^64 and `attr' is another string. The whitespace around\n"
 "the `=' is optional. One may specify an explicit length of k bits for the\n"
 "integer by giving `attr = N#k'. Note that any comparisons in a policy given\n"
-"to cpabe-enc(1) must then specify the same number of bits, e.g.,\n"
+"to seabrew-abe-enc(1) must then specify the same number of bits, e.g.,\n"
 "`attr > 5#12'.\n"
 "\n"
 "The keywords `and', `or', and `of', are reserved for the policy language\n"
-"of cpabe-enc (1) and may not be used for either type of attribute.\n"
+"of seabrew-abe-enc (1) and may not be used for either type of attribute.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -37,6 +40,10 @@ char* usage =
 " -o, --output FILE        write resulting key to FILE\n\n"
 " -d, --deterministic      use deterministic \"random\" numbers\n"
 "                          (only for debugging)\n\n"
+" -p, --partial PARTIAL	   write the partial decryption key\n"
+"                          to PARTIAL. If not specified the file\n"
+"                          it will be used default name\n"
+"                          (partial_updates)\n\n"
 "";
 
 /*
@@ -74,7 +81,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-keygen");
+			printf(SEABREW_ABE_VERSION, "-seabrew-keygen");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-o") || !strcmp(argv[i], "--output") )
@@ -128,17 +135,17 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	seabrew_bswabe_msk_t* msk;
 	seabrew_bswabe_prv_t* prv;
-	GByteArray* partial_updates_buffer;
+	seabrew_bswabe_partial_updates_t* partial_updates;
 
 	parse_args(argc, argv);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	
-	prv = seabrew_bswabe_keygen(pub, msk, attrs, &partial_updates_buffer);
+	prv = seabrew_bswabe_keygen(pub, msk, attrs, &partial_updates);
 	
 	spit_file(out_file, seabrew_bswabe_prv_serialize(prv), 1);
-	spit_file(partial_updates_file, partial_updates_buffer, 1);
+	spit_file(partial_updates_file, seabrew_bswabe_partial_updates_serialize(partial_updates), 1);
 
 	return 0;
 }

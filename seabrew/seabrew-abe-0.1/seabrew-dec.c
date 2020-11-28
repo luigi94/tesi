@@ -9,13 +9,16 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-dec [OPTION ...] PUB_KEY PRIV_KEY FILE\n"
+"Usage: seabrew-abe-dec [OPTION ...] PUB_KEY PRIV_KEY FILE\n"
 "\n"
 "Decrypt FILE using private key PRIV_KEY and assuming public key\n"
 "PUB_KEY. If the name of FILE is X.cpabe, the decrypted file will\n"
 "be written as X and FILE will be removed. Otherwise the file will be\n"
 "decrypted in place. Use of the -o option overrides this\n"
 "behavior.\n"
+"\n"
+"Decryption will be successfull only if PRIV_KEY's version matches"
+" ciphertext's and PUB_KEY's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -65,7 +68,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-dec");
+			printf(SEABREW_ABE_VERSION, "-seabrew-dec");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-k") || !strcmp(argv[i], "--keep-input-file") )

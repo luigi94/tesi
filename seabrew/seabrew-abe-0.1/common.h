@@ -26,11 +26,6 @@ void die(char* fmt, ...);
 GByteArray* aes_128_cbc_encrypt( GByteArray* pt, element_t k );
 GByteArray* aes_128_cbc_decrypt( GByteArray* ct, element_t k );
 
-#define CPABE_VERSION PACKAGE_NAME "%s " PACKAGE_VERSION "\n" \
+#define SEABREW_ABE_VERSION PACKAGE_NAME "%s " PACKAGE_VERSION "\n" \
 "\n" \
-"Parts Copyright (C) 2006, 2007 John Bethencourt and SRI International.\n" \
-"This is free software released under the GPL, see the source for copying\n" \
-"conditions. There is NO warranty; not even for MERCHANTABILITY or FITNESS\n" \
-"FOR A PARTICULAR PURPOSE.\n" \
-"\n" \
-"Report bugs to John Bethencourt <bethenco@cs.berkeley.edu>.\n"
+"Report bugs to University of Pisa.\n"

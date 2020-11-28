@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
-AC_INIT([seabrew-abe], [0.11], [seabrew@abe.it])
+AC_INIT([seabrew-abe], [0.1], [seabrew@abe.it])
 AC_CONFIG_SRCDIR([common.h])
 
 dnl First, standard system stuff.

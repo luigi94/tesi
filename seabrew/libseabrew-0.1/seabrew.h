@@ -44,6 +44,14 @@ struct seabrew_bswabe_upd_s
 
 typedef struct seabrew_bswabe_upd_s seabrew_bswabe_upd_t;
 
+typedef struct seabrew_bswabe_partial_updates_s
+{
+	uint32_t version;
+	element_t pub_h;
+	element_t prv_d;
+
+} seabrew_bswabe_partial_updates_t;
+
 /*
   Generate a public key and corresponding master secret key, and
   assign the *pub and *msk pointers to them. The space used may be
@@ -57,7 +65,7 @@ void seabrew_bswabe_setup(seabrew_bswabe_pub_t** pub, seabrew_bswabe_msk_t** msk
   argument should be a null terminated array of pointers to strings,
   one for each attribute.
 */
-seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_bswabe_msk_t* msk, char** attributes, GByteArray** partial_updates_buffer);
+seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_bswabe_msk_t* msk, char** attributes, seabrew_bswabe_partial_updates_t** partial_updates);
 
 /*
   Pick a random group element and encrypt it under the specified
@@ -130,9 +138,9 @@ GByteArray* seabrew_bswabe_msk_serialize(seabrew_bswabe_msk_t* msk );
 GByteArray* seabrew_bswabe_prv_serialize(seabrew_bswabe_prv_t* prv );
 GByteArray* seabrew_bswabe_cph_serialize(seabrew_bswabe_cph_t* cph );
 GByteArray* seabrew_bswabe_upd_serialize(seabrew_bswabe_upd_t* upd );
+GByteArray* seabrew_bswabe_partial_updates_serialize(seabrew_bswabe_partial_updates_t* partial_updates);
 void serialize_uint32(GByteArray* b, uint32_t k);
 void serialize_element( GByteArray* b, element_t e );
-GByteArray* seabrew_bswabe_build_partial_updates_and_serialize(seabrew_bswabe_msk_t* msk, seabrew_bswabe_prv_t* prv, seabrew_bswabe_pub_t* pub );
 
 /*
   Also exactly what it seems. If free is true, the GByteArray passed

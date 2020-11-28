@@ -10,15 +10,17 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-updatemk [OPTION ...] PUB_KEY MASTER_KEY UPD_KEY\n"
+"Usage: seabrew-abe-updatemk [OPTION ...] PUB_KEY MASTER_KEY UPD_KEY\n"
 "\n"
 "Update the MASTER_KEY using the public key PUB_KEY and\n"
 "generate an update key UPD_KEY of one version greater than \n"
 "MASTER_KEY's.\n"
+"\n"
 "If the file passed through UPD_KEY exists and it is valid\n"
 "then it will be update accordingly, otherwise it will be\n"
 "generated from scratch.\n"
-"The first version of UPD_KEY will be, in any case, 1."
+"\n"
+"The first version of UPD_KEY will be, in any case, 1.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -44,7 +46,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-updatemk");
+			printf(SEABREW_ABE_VERSION, "-seabrew-updatemk");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )

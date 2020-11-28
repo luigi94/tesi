@@ -10,7 +10,7 @@
 #include "common.h"
 
 char* usage =
-"Usage: cpabe-updatedk [OPTION ...] PARTIAL_UPDATES UPD_KEY PUB_KEY\n"
+"Usage: seabrew-abe-updatedk [OPTION ...] PARTIAL_UPDATES UPD_KEY PUB_KEY\n"
 "\n"
 "Using the updated public (encryption) key PUB_KEY and the quantities\n"
 "carried by UPD_KEY, update the partial updates carried bt PARTIAL_UPDATES.\n"
@@ -37,7 +37,7 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(CPABE_VERSION, "-update-partial-updates");
+			printf(SEABREW_ABE_VERSION, "-seabrew-update-partial-updates");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )

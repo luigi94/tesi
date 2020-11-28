@@ -29,7 +29,7 @@ void seabrew_bswabe_setup(seabrew_bswabe_pub_t** pub, seabrew_bswabe_msk_t** msk
 	(*msk)->version = 0U;
 }
 
-seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_bswabe_msk_t* msk, char** attributes, GByteArray** partial_updates_buffer){
+seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_bswabe_msk_t* msk, char** attributes, seabrew_bswabe_partial_updates_t** partial_updates){
 	
 	seabrew_bswabe_prv_t* prv;
 	
@@ -40,7 +40,17 @@ seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_b
 	prv->prv_f = bswabe_keygen(pub->pub_f, msk->msk_f, attributes);
 	prv->version = msk->version;
 	
-	*partial_updates_buffer = seabrew_bswabe_build_partial_updates_and_serialize(msk, prv, pub);
+	if((*partial_updates = (seabrew_bswabe_partial_updates_t*)malloc(sizeof(seabrew_bswabe_partial_updates_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	// Buildin partial updates
+	(*partial_updates)->version = msk->version;
+	element_init_G1((*partial_updates)->pub_h, pub->pub_f->p);
+	element_set((*partial_updates)->pub_h, pub->pub_f->h);
+	element_init_G2((*partial_updates)->prv_d, pub->pub_f->p);
+	element_set((*partial_updates)->prv_d, prv->prv_f->d);
 	
 	return prv;
 }
