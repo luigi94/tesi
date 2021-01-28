@@ -3,7 +3,7 @@ rm -f dummy kevin_priv_key master_key partial_updates pub_key sara_priv_key upd_
 
 seabrew-abe-setup
 
-seabrew-abe-keygen -o sara_priv_key -p dummy pub_key master_key \
+seabrew-abe-keygen -o sara_priv_key pub_key master_key \
     sysadmin it_department 'office = 1431'
 
 seabrew-abe-keygen -o kevin_priv_key pub_key master_key \

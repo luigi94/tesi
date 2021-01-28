@@ -167,12 +167,22 @@ main( int argc, char** argv )
 
 	if( !keep )
 		unlink(in_file);
+		
+	element_clear(m);
 
 	/* report ops if necessary */
 /* 	if( report_ops ) */
 /* 		printf("pairings:        %5d\n" */
 /* 					 "exponentiations: %5d\n" */
 /* 					 "multiplications: %5d\n", num_pairings, num_exps, num_muls); */
+	
+	free(cph);
+	
+	seabrew_bswabe_prv_free(prv);
+	free(prv);
+	
+	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }

@@ -80,11 +80,16 @@ main( int argc, char** argv )
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
 	u_pk = extract_u_pk(upd);
-	spit_file(out_file, seabrew_bswabe_u_cp_serialize((seabrew_bswabe_u_cp_t*)u_pk), 1);
+	spit_file(out_file, seabrew_bswabe_u_x_serialize((seabrew_bswabe_u_x_t*)u_pk), 1);
 	
 	seabrew_bswabe_upd_free(upd);
-	seabrew_bswabe_u_cp_free((seabrew_bswabe_u_cp_t*)u_pk);
+	free(upd);
+	
+	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_pk);
+	free(u_pk);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }

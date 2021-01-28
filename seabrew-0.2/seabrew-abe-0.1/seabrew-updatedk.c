@@ -75,19 +75,20 @@ main( int argc, char** argv )
 	
 	seabrew_bswabe_pub_t* pub;
 	seabrew_bswabe_u_dk_t* u_dk;
+	
 	parse_args(argc, argv);
-	fprintf(stdout, "Fin qui tutto bene\n");
 	pbc_random_set_deterministic(11);
-	fprintf(stdout, "Fin qui tutto bene\n");
+	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
-	u_dk = (seabrew_bswabe_u_dk_t*)seabrew_bswabe_u_cp_unserialize(pub, suck_file(u_dk_file), 1);
-	fprintf(stdout, "Fin qui tutto bene\n");
+	u_dk = (seabrew_bswabe_u_dk_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(u_dk_file), 0, 1);
+	
 	seabrew_bswabe_update_dk(pub, prv_file, u_dk);
 	
-	seabrew_bswabe_u_cp_free((seabrew_bswabe_u_cp_t*)u_dk);
-	fprintf(stdout, "Fin qui tutto bene\n");
+	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_dk);
+	free(u_dk);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 	
 	return 0;
 }
-

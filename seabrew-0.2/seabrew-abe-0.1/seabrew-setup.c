@@ -84,6 +84,12 @@ main( int argc, char** argv )
 	
 	spit_file(pub_file, seabrew_bswabe_pub_serialize(pub), 1);
 	spit_file(msk_file, seabrew_bswabe_msk_serialize(msk), 1);
+	
+	seabrew_bswabe_msk_free(msk);
+	free(msk);
+	
+	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }

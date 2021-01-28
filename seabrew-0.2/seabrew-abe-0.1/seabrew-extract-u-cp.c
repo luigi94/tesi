@@ -89,13 +89,18 @@ main( int argc, char** argv )
 	if( access(out_file, F_OK ) == -1 )
 		u_cp = extract_u_cp(upd, NULL, reset);
 	else{
-		u_cp = extract_u_cp(upd, seabrew_bswabe_u_cp_unserialize(pub, suck_file(out_file), 1), reset);
+		u_cp = extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(out_file), 0, 1), reset);
 	}
-	spit_file(out_file, seabrew_bswabe_u_cp_serialize(u_cp), 1);
+	spit_file(out_file, seabrew_bswabe_u_x_serialize((seabrew_bswabe_u_x_t*)u_cp), 1);
 	
 	seabrew_bswabe_upd_free(upd);
-	seabrew_bswabe_u_cp_free(u_cp);
+	free(upd);
+	
+	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_cp);
+	free(u_cp);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }

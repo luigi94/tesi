@@ -70,14 +70,20 @@ main( int argc, char** argv )
 	
 	seabrew_bswabe_pub_t* pub;
 	seabrew_bswabe_u_pk_t* u_pk;
+	
 	parse_args(argc, argv);
 	pbc_random_set_deterministic(1132);
+	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
-	u_pk = seabrew_bswabe_u_pk_unserialize(pub, suck_file(u_pk_file), 1);
+	u_pk = (seabrew_bswabe_u_pk_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(u_pk_file), 1, 1);
+	
 	seabrew_bswabe_update_pk(pub_file, u_pk);
 	
-	seabrew_bswabe_u_cp_free((seabrew_bswabe_u_cp_t*)u_pk);
+	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_pk);
+	free(u_pk);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 	
 	return 0;
 }

@@ -21,9 +21,6 @@ char* usage =
 "attributes are simply any string of letters, digits, and underscores\n"
 "beginning with a letter.\n"
 "\n"
-"Additionally, set the generated key's version to the master key's version\n"
-"and build the partial_updates.\n"
-"\n"
 "Numerical attributes are specified as `attr = N', where N is a non-negative\n"
 "integer less than 2^64 and `attr' is another string. The whitespace around\n"
 "the `=' is optional. One may specify an explicit length of k bits for the\n"
@@ -40,10 +37,6 @@ char* usage =
 " -o, --output FILE        write resulting key to FILE\n\n"
 " -d, --deterministic      use deterministic \"random\" numbers\n"
 "                          (only for debugging)\n\n"
-" -p, --partial PARTIAL	   write the partial decryption key\n"
-"                          to PARTIAL. If not specified the file\n"
-"                          it will be used default name\n"
-"                          (partial_updates)\n\n"
 "";
 
 /*
@@ -56,7 +49,6 @@ char*  msk_file = 0;
 char** attrs    = 0;
 
 char*  out_file = "priv_key";
-char* partial_updates_file = "partial_updates";
 
 gint
 comp_string( gconstpointer a, gconstpointer b)
@@ -90,13 +82,6 @@ parse_args( int argc, char** argv )
 				die(usage);
 			else
 				out_file = argv[i];
-		}
-		else if( !strcmp(argv[i], "-p") || !strcmp(argv[i], "--partial") )
-		{
-			if( ++i >= argc )
-				die(usage);
-			else
-				partial_updates_file = argv[i];
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
 		{
@@ -135,7 +120,6 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	seabrew_bswabe_msk_t* msk;
 	seabrew_bswabe_prv_t* prv;
-	seabrew_bswabe_partial_updates_t* partial_updates;
 
 	parse_args(argc, argv);
 	pbc_random_set_deterministic(6);
@@ -143,10 +127,17 @@ main( int argc, char** argv )
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	
-	prv = seabrew_bswabe_keygen(pub, msk, attrs, &partial_updates);
+	prv = seabrew_bswabe_keygen(pub, msk, attrs);
 	
 	spit_file(out_file, seabrew_bswabe_prv_serialize(prv), 1);
-	spit_file(partial_updates_file, seabrew_bswabe_partial_updates_serialize(partial_updates), 1);
+	
+	seabrew_bswabe_msk_free(msk);
+	free(msk);
+	
+	seabrew_bswabe_pub_free(pub);
+	free(pub);
+	
+	free(prv);
 
 	return 0;
 }

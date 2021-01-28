@@ -92,5 +92,8 @@ main( int argc, char** argv )
 	
 	seabrew_bswabe_update_mk(pub, msk_file, upd_file);
 	
+	seabrew_bswabe_pub_free(pub);
+	free(pub);
+	
 	return 0;
 }

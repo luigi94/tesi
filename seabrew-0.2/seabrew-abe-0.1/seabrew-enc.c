@@ -126,6 +126,9 @@ main( int argc, char** argv )
 
 	if( !keep )
 		unlink(in_file);
+		
+	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }
