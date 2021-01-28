@@ -12,6 +12,7 @@
 #include <glib.h>
 #include <pbc.h>
 #include <fcntl.h>
+#include <sys/time.h>
 
 #include "bswabe.h"
 #include "private.h"
@@ -28,6 +29,7 @@ ssize_t nbytes;
 int socket_fd;
 
 sqlite3* db = NULL;
+FILE* f_revocation_times;
 
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
@@ -36,6 +38,8 @@ char* policy = "ECU_MODEL_2247_v_0 or (CAR_MODEL_21_v_0 and ECU_MODEL_2248_v_0)"
 char* to_encrypt = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* cltpubkey = "cltpubkey.pem";
 char* user = "green_vehicle";
+
+char* revocation_times_file_name = "revocation_times.csv";
 
 typedef struct pthread_arg_t {
     int new_socket_fd;
@@ -393,13 +397,7 @@ int main(int argc, char *argv[]) {
 		/* Initialise pthread argument. */
 		pthread_arg->new_socket_fd = new_socket_fd;
 		pthread_arg->mutex = &mutex;
-
-		/* Create thread to serve connection to client. */
-		if (pthread_create(&pthread, &pthread_attr, pthread_routine, (void *)pthread_arg) != 0) {
-			perror("pthread_create");
-			free(pthread_arg);
-			continue;
-		}
+		
 		if((requests % REQUESTS) == 0){
 			if(pthread_cond_signal(&wait_cv)){
 				fprintf(stderr, "Error on condition signal. Error: %s\n", strerror(errno));
@@ -407,6 +405,13 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		requests++;
+
+		/* Create thread to serve connection to client. */
+		if (pthread_create(&pthread, &pthread_attr, pthread_routine, (void *)pthread_arg) != 0) {
+			perror("pthread_create");
+			free(pthread_arg);
+			continue;
+		}
 	}
 	return 0;
 }
@@ -602,23 +607,51 @@ void *key_authority_routine(void* arg){
 	pthread_mutex_t* mutex;
 	pthread_mutex_t* cond_mutex;
 	pthread_cond_t* wait_cv;
+	size_t iteration;
+	struct timeval start;
+	struct timeval end;
   
 	pthread_arg = (ka_arg_t*)arg;
   mutex = pthread_arg->mutex;
   cond_mutex = pthread_arg->cond_mutex;
   wait_cv = pthread_arg->wait_cv;
   free(arg);
+  iteration = 0UL;
+  
+  if((f_revocation_times = fopen(revocation_times_file_name, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", revocation_times_file_name, strerror(errno));
+		exit(1);
+	}
+	
+	fprintf(f_revocation_times, "Iteration, Revocation\n");
 	
 	while(TRUE){
 		pthread_cond_wait(wait_cv, cond_mutex);
 		pthread_mutex_lock(mutex);
+		if(gettimeofday(&start, NULL) != 0){
+			fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		
 		if(!update_decryption_key_and_re_encrypt_ciphertext(user)){
 			fprintf(stderr, "Error in key authority thread\n");
 			pthread_mutex_unlock(mutex);
 			exit(1);
 		}
+		if(gettimeofday(&end, NULL) != 0){
+			fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
+			exit(1);
+		}
+		iteration += 1UL;
+		fprintf(f_revocation_times, "%lu, %lu\n", iteration, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
+		for(size_t i = 1; i < REQUESTS; ++i){
+			iteration += 1UL;
+			fprintf(f_revocation_times, "%lu, %lu\n", iteration, 0UL);
+		}
 		pthread_mutex_unlock(mutex);
 	}
+	
+	fclose(f_revocation_times);
 	
 	return NULL;
 }
@@ -626,5 +659,6 @@ void *key_authority_routine(void* arg){
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, " <-- Signal handler invoked\n");
 	close_socket(socket_fd);
+	fclose(f_revocation_times);
   exit(1);
 }

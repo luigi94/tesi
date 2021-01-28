@@ -492,9 +492,7 @@ bswabe_cph_free( bswabe_cph_t* cph )
 	bswabe_policy_free(cph->p);
 }
 
-void
-bswabe_upd_free( bswabe_upd_t* upd )
-{
+void bswabe_upd_free(bswabe_upd_t* upd ){
 	while(upd != NULL){
 		element_clear(upd->u_cp);
 		element_clear(upd->u_pk);
@@ -502,7 +500,3 @@ bswabe_upd_free( bswabe_upd_t* upd )
 		upd = upd->next;
 	}
 }
-
-
-
-

@@ -1,0 +1,32 @@
+.TH SEABREW-ABE-UPDATE-PUB-AND-PRV-PARTIAL "1" "November 2020" "SRI International" "User Commands"
+.SH NAME
+seabrew-abe-update-pub-and-prv-partial \- manual page for seabrew-abe-update-pub-and-prv-partial 0.1
+.SH SYNOPSIS
+.B seabrew-abe-update-pub-and-prv-partial
+[\fIOPTION \fR...] \fIPARTIAL_UPDATES PUB_KEY PRV_KEY \fR
+.SH DESCRIPTION
+Update the public (encryption) key PUB_KEY and the private (decryption) key PRV_KEY using the quantities carried by PARTIAL_UPDATES.
+.PP
+Mandatory arguments to long options are mandatory for short options too.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print this message
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print version information
+.SH EXAMPLES
+
+Update "pub_key" and "kevin_priv_key" using "partial_updates":
+
+  $ seabrew-abe-update-pub-and-prv-partial partial_updates pub_key kevin_priv_key
+
+.SH "REPORTING BUGS"
+Report bugs to University of Pisa. 
+.SH "SEE ALSO"
+.BR seabrew-abe-setup (1),
+.BR seabrew-abe-keygen (1),
+.BR seabrew-abe-enc (1),
+.BR seabrew-abe-dec (1),
+.BR seabrew-abe-updatemk (1),
+.BR seabrew-abe-updatecp (1),
+.BR seabrew-abe-update-partial-updates (1)

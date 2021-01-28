@@ -77,11 +77,11 @@ uint32_t get_cph_or_prv_version(char* cph_or_prv_file){
 	unsigned char* buf;
 	
 	if((f = fopen(cph_or_prv_file, "r")) == NULL) {
-		printf("Error in opening file (6**1)\n");
+		fprintf(stderr, "Error in opening file %s. Error: %s\n", cph_or_prv_file, strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (20**)\n");
+		fprintf(stderr, "Error in allocating memory for ciphertext or private key version. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	fseek(f, -4L, SEEK_END);
@@ -101,11 +101,11 @@ uint32_t get_msk_version(char* msk_file){
 	unsigned char* buf;
 	
 	if((f = fopen(msk_file, "r")) == NULL) {
-		fprintf(stderr, "Error in opening file (1**). Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in opening file %s. Error: %s\n", msk_file, strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (20**)\n");
+		fprintf(stderr, "Error in allocating memory for master key version. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	fseek(f, -4L, SEEK_END);
@@ -125,11 +125,11 @@ uint32_t get_partial_updates_version(char* partial_updates_file){
 	unsigned char* buf;
 	
 	if((f = fopen(partial_updates_file, "r")) == NULL) {
-		fprintf(stderr, "Error in opening file (2**). Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in opening file %s. Error: %s\n", partial_updates_file, strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		fprintf(stderr, "Error in malloc(). Error: %s\n", strerror(errno));
+		fprintf(stderr, "Error in allocating memory for partial updates version. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	fread(buf, 1, 4L, f);
@@ -933,17 +933,15 @@ bswabe_dec( bswabe_pub_t* pub, char* prv_file, char* out_file, unsigned char* fi
 	return 1;
 }
 
-uint32_t how_many_upd(char* upd_file)
-{
+uint32_t how_many_upd(char* upd_file){
 	uint32_t iter;
 	FILE* f;
 	
 	if( access( upd_file, F_OK ) == -1 )
 		return (uint32_t) 0;
 		
-	if ((f = fopen(upd_file, "r") ) == NULL)
-	{ 
-		printf("Error in opening file (7)\n"); 
+	if ((f = fopen(upd_file, "r") ) == NULL){ 
+		fprintf(stderr, "Error in opening %s. Error: %s\n", upd_file, strerror(errno)); 
 		exit(1); 
 	} 
 	fseek(f, 0L, SEEK_END);
@@ -954,8 +952,7 @@ uint32_t how_many_upd(char* upd_file)
 }
 
 int
-check_consistency(char* upd_file) // 1 if consistent, 0 otherwise
-{
+check_consistency(char* upd_file){ // 1 if consistent, 0 otherwise
 	FILE* f;
 	unsigned char* buf;
 	uint32_t current_version;
@@ -964,11 +961,11 @@ check_consistency(char* upd_file) // 1 if consistent, 0 otherwise
 	long dim;
 	int i;
 	if((f = fopen(upd_file, "r")) == NULL){
-		printf("Error in opening file (8)\n");
+		fprintf(stderr, "Error in opening %s. Error: %s\n", upd_file, strerror(errno));
 		exit(1);
 	}
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (21)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	pointer = 156L;
@@ -993,7 +990,7 @@ check_consistency(char* upd_file) // 1 if consistent, 0 otherwise
 		current_version = 0;
 		for(i = 3; i >= 0; i-- )
 			current_version |= (buf[(3 - i)])<<(i*8);
-		if(current_version <= 0 || last_version != current_version - (uint32_t) 1)
+		if(current_version <= 0 || last_version != current_version - 1U)
 			return 0;
 		pointer += 160L;
 		last_version = current_version;
@@ -1005,8 +1002,7 @@ check_consistency(char* upd_file) // 1 if consistent, 0 otherwise
 }
 
 void
-bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file)
-{
+bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file){
 	FILE* f;
 	unsigned char* buf;
 	int i;
@@ -1015,14 +1011,14 @@ bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file)
 	element_t old_beta;
 	
 	if((f = fopen(msk_file, "r+")) == NULL){
-		printf("Error in opening file (1)\n");
+		fprintf(stderr, "Error in opening %s. Error: %s\n", msk_file, strerror(errno));
 		exit(1);
 	}
-	
 	// Fetch old beta
 	element_init_Zr(old_beta, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
-		printf("Error in malloc() (1)\n");
+		fprintf(stderr, "Error in allocating memory. Error %s\n", strerror(errno));
+		fclose(f);
 		exit(1);
 	}
 	fseek(f, 4L, SEEK_SET);
@@ -1039,7 +1035,8 @@ bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file)
 	
 	// Increment version
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (2)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f);
 		exit(1);
 	}
 	fseek(f, 156L, SEEK_SET);
@@ -1054,17 +1051,17 @@ bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file)
 	
 	// Create new UPD and add to upd_file
 	if((new_node = (bswabe_upd_t*) malloc(sizeof(bswabe_upd_t))) == NULL){
-		printf("Error in malloc() (3)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	element_init_Zr(new_node->u_cp, pub->p);
 	element_init_G1(new_node->u_pk, pub->p);
 	element_div(new_node->u_cp, beta, old_beta);	// new_node->u_cp => beta_vmk / (beta_vmk - 1)
 	element_pow_zn(new_node->u_pk, pub->g, beta);		// new_node->u_pk => g^beta_vmk
-	new_node->v_uk = how_many_upd(upd_file) + (uint32_t) 1;
+	new_node->v_uk = how_many_upd(upd_file) + 1U;
 	new_node->next = NULL;
 	if( access( upd_file, F_OK ) != -1 && !check_consistency(upd_file)){
-		printf("Error in version (1)\n");
+		fprintf(stderr, "Error in version, exit\n");
 		exit(1);
 	}
 	update_file(upd_file, bswabe_upd_serialize(new_node), 1 );
@@ -1072,178 +1069,10 @@ bswabe_update_mk(bswabe_pub_t* pub, char* msk_file, char* upd_file)
 	
 	element_clear(beta);
 	element_clear(old_beta);
-
 }
 
 void
-bswabe_update_pk(char* pub_file, char* upd_file)
-{
-	unsigned char* buf;
-	long upds;
-	FILE* f_upd;
-	FILE* f_pub;
-	
-	if(!check_consistency(upd_file)){
-		printf("Error in version (2)\n");
-		exit(1);
-	}
-	
-	upds = (long) how_many_upd(upd_file);
-
-	if(((f_upd = fopen(upd_file, "r")) == NULL) || ((f_pub = fopen(pub_file, "r+")) == NULL)){
-		printf("Error in opening file (2)\n");
-		exit(1);
-	}
-	if((buf = (unsigned char*) malloc(132 * sizeof(unsigned char))) == NULL){
-		printf("Error in malloc() (4)\n");
-		exit(1);
-	}
-	
-	fseek(f_upd, (long) ((upds - 1) * 160 + 24), SEEK_SET);
-	fread(buf, 1, 132L, f_upd);
-	
-	fseek(f_pub, 492L, SEEK_SET);
-	fwrite(buf, 1, 132L, f_pub);
-	
-	free(buf);
-	
-	if((buf = (unsigned char*) malloc(4 * sizeof(unsigned char))) == NULL){
-		printf("Error in malloc() (5)\n");
-		exit(1);
-	}
-	
-	fseek(f_upd, (long) ((upds - 1) * 160 + 156), SEEK_SET);
-	fread(buf, 1, 4L, f_upd);
-
-	fseek(f_pub, 888L, SEEK_SET);
-	fwrite(buf, 1, 4L, f_pub);
-	
-	free(buf);
-	fclose(f_upd);
-	fclose(f_pub);
-}
-
-void
-bswabe_update_dk(bswabe_pub_t* pub, char* prv_file, char* upd_file)
-{
-	element_t exp;
-	element_t current_exp;
-	element_t base;
-	unsigned char* buf;
-	uint32_t version;
-	uint32_t current_version;
-	int i;
-	long dim;
-	long pointer;
-	FILE* f_prv;
-	FILE* f_upd;
-	
-	if(!check_consistency(upd_file)){
-		printf("Error in version (3)\n");
-		exit(1);
-	}
-	
-	if((f_prv = fopen(prv_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
-		printf("Error in opening file (3)\n");
-		exit(1);
-	}
-	
-	// Fetch decryption key version
-	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (6)\n");
-		exit(1);
-	}
-	fseek(f_prv, -4L, SEEK_END);
-	
-	fread(buf, 1, 4L, f_prv);
-	version = 0;
-	for(i = 3; i >= 0; i-- )
-		version |= (buf[(3 - i)])<<(i*8);
-	// Find the upd such its version is v_dk+1
-	fseek(f_upd, 0L, SEEK_END);
-	dim = ftell(f_upd);
-	pointer = 156L;
-	while(TRUE){
-		fseek(f_upd, pointer, SEEK_SET);
-		fread(buf, 1, 4L, f_upd);
-		current_version = 0;
-		for(i = 3; i >= 0; i-- )
-			current_version |= (buf[(3 - i)])<<(i*8);
-		
-		if(current_version > version){
-			pointer -= 152L;
-			break;
-		}
-		if(current_version == version){
-			pointer += 8L;
-			if(pointer > dim)
-				return;
-			break;
-		}
-		pointer += 160L;
-		if(pointer > dim){
-			printf("Error in version (4)\n");
-			exit(1);
-		}
-	}
-	free(buf);
-	
-	// Fetch all u_cp(s)
-	element_init_Zr(exp, pub->p);
-		element_init_Zr(current_exp, pub->p);
-	if((buf = (unsigned char*) malloc(20)) == NULL){
-		printf("Error in malloc() (7)\n");
-		exit(1);
-	}
-	element_set1(exp);
-	while(TRUE){
-		if(pointer > dim){
-			free(buf);
-			if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-				printf("Error in malloc() (8)\n");
-				exit(1);
-			}
-			pointer -= 8L;
-			fseek(f_upd, pointer, SEEK_SET);
-			fread(buf, 1, 4L, f_upd);
-			fseek(f_prv, -4L, SEEK_END);
-			fwrite(buf, 1, 4L, f_prv);
-			break;
-		}
-		fseek(f_upd, pointer, SEEK_SET);
-		fread(buf, 1, 20L, f_upd);
-		element_from_bytes(current_exp, buf);
-		element_mul(exp, exp, current_exp);
-		pointer += 160L;
-	}
-	free(buf);
-	
-	// Exponentiation and write new D
-	element_invert(exp, exp);
-	element_init_G2(base, pub->p);
-	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (9)\n");
-		exit(1);
-	}
-	fseek(f_prv, 4L, SEEK_SET);
-	fread(buf, 1, 128L, f_prv);
-	element_from_bytes(base, buf);
-	element_pow_zn(base, base, exp);
-	element_to_bytes(buf, base);
-	fseek(f_prv, 4L, SEEK_SET);
-	fwrite(buf, 1, 128L, f_prv);
-	free(buf);
-	
-	element_clear(exp);
-	element_clear(current_exp);
-	element_clear(base);
-	fclose(f_upd);
-	fclose(f_prv);
-}
-
-void
-bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
-{
+bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file) {
 	element_t exp;
 	element_t current_exp;
 	element_t base;
@@ -1256,25 +1085,28 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	int len;
 	FILE* f_cph;
 	FILE* f_upd;
-	int file_len;
-	GByteArray* aes_buf;
-	GByteArray* cph_buf;
 	
 	if(!check_consistency(upd_file)){
-		printf("Error in version (5)\n");
+		fprintf(stderr, "Error in version, exit\n");
 		exit(1);
 	}
-	
-	read_cpabe_file(cph_file, &cph_buf, &file_len, &aes_buf);
 
-	if((f_cph = fopen(cph_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
-		printf("Error in opening file (4)\n");
+	if((f_cph = fopen(cph_file, "r+")) == NULL) {
+		fprintf(stderr, "Error in opening %s. Error: %s\n", cph_file, strerror(errno));
+		exit(1);
+	}
+
+	if((f_upd = fopen(upd_file, "r")) == NULL) {
+		fprintf(stderr, "Error in opening %s. Error: %s\n", upd_file, strerror(errno));
+		fclose(f_cph);
 		exit(1);
 	}
 	
 	// Fetch decryption key version
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (10)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_cph);
 		exit(1);
 	}
 	fseek(f_cph, -4L, SEEK_END);
@@ -1300,13 +1132,20 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 		}
 		if(current_version == version){
 			pointer += 8L;
-			if(pointer > dim)
+			if(pointer > dim){
+				fclose(f_upd);
+				fclose(f_cph);
+				free(buf);
 				return;
+			}
 			break;
 		}
 		pointer += 160L;
 		if(pointer > dim){
-			printf("Error in version (6)\n");
+			fprintf(stderr, "Error in version, exit\n");
+			fclose(f_upd);
+			fclose(f_cph);
+			free(buf);
 			exit(1);
 		}
 	}
@@ -1316,7 +1155,9 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	element_init_Zr(exp, pub->p);
 	element_init_Zr(current_exp, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
-		printf("Error in malloc() (11)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_cph);
 		exit(1);
 	}
 	element_set1(exp);
@@ -1324,7 +1165,9 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 		if(pointer > dim){
 			free(buf);
 			if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-				printf("Error in malloc() (12)\n");
+				fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+				fclose(f_upd);
+				fclose(f_cph);
 				exit(1);
 			}
 			pointer -= 8L;
@@ -1345,7 +1188,9 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 	// Exponentiation and write new C
 	element_init_G1(base, pub->p);
 	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (13)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_cph);
 		exit(1);
 	}
 	fseek(f_cph, 4L, SEEK_SET);
@@ -1370,8 +1215,7 @@ bswabe_update_cp(bswabe_pub_t* pub, char* cph_file, char* upd_file)
 }
 
 void
-bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_file)
-{
+bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_file){
 	/* TODO update the error messages */
 	element_t exp;
 	element_t current_exp;
@@ -1386,18 +1230,29 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 	FILE* f_upd;
 	
 	if(!check_consistency(upd_file)){
-		printf("Error in version (7)\n");
+		fprintf(stderr, "Error in version in file %s, exit\n", upd_file);
 		exit(1);
 	}
-	if((f_updates = fopen(updates_file, "r+")) == NULL || (f_upd = fopen(upd_file, "r")) == NULL) {
-		printf("Error in opening file (5)\n");
+	
+	if((f_upd = fopen(upd_file, "r")) == NULL) {
+		fprintf(stderr, "Error in opening %s. Error: %s\n", upd_file, strerror(errno));
 		exit(1);
 	}
+	
+	if((f_updates = fopen(updates_file, "r+")) == NULL) {
+		fprintf(stderr, "Error in opening %s. Error: %s\n", updates_file, strerror(errno));
+		fclose(f_upd);
+		exit(1);
+	}
+	
 	// Fetch decryption key version
 	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-		printf("Error in malloc() (14)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_updates);
 		exit(1);
 	}
+	
 	fread(buf, 1, 4L, f_updates);
 	version = 0;
 	for(i = 3; i >= 0; i-- )
@@ -1419,13 +1274,20 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 		}
 		if(current_version == version){
 			pointer += 8L;
-			if(pointer > dim)
+			if(pointer > dim){
+				fclose(f_upd);
+				fclose(f_updates);
+				free(buf);
 				return;
+			}
 			break;
 		}
 		pointer += 160L;
 		if(pointer > dim){
-			printf("Error in version (8)\n");
+			fprintf(stderr, "Error in version, exit\n");
+			fclose(f_upd);
+			fclose(f_updates);
+			free(buf);
 			exit(1);
 		}
 	}
@@ -1435,7 +1297,10 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 	element_init_Zr(exp, pub->p);
 	element_init_Zr(current_exp, pub->p);
 	if((buf = (unsigned char*) malloc(20)) == NULL){
-		printf("Error in malloc() (15)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_updates);
+		free(buf);
 		exit(1);
 	}
 	element_set1(exp);
@@ -1443,7 +1308,9 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 		if(pointer > dim){
 			free(buf);
 			if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
-				printf("Error in malloc() (16)\n");
+				fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+				fclose(f_upd);
+				fclose(f_updates);
 				exit(1);
 			}
 			// Write version
@@ -1455,7 +1322,9 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 			free(buf);
 			
 			if((buf = (unsigned char*) malloc(128)) == NULL){
-				printf("Error in malloc() (17)\n");
+				fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+				fclose(f_upd);
+				fclose(f_updates);
 				exit(1);
 			}
 			
@@ -1475,11 +1344,14 @@ bswabe_update_partial_updates(bswabe_pub_t* pub, char* updates_file, char* upd_f
 		pointer += 160L;
 	}
 	free(buf);
+	
 	// Exponentiation and write new D
 	element_invert(exp, exp);
 	element_init_G2(base, pub->p);
 	if((buf = (unsigned char*) malloc(128)) == NULL){
-		printf("Error in malloc() (18)\n");
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_upd);
+		fclose(f_updates);
 		exit(1);
 	}
 	// Write new d

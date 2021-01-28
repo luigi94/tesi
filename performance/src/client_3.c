@@ -170,14 +170,6 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		
-		if(iteration % REQUESTS == 0){
-			//fprintf(stdout, "Iteration %lu\n", iteration);
-			if(usleep((useconds_t) 20000000) != 0){
-				fprintf(stderr, "Error in usleep(). Error: %s\n", strerror(errno));
-				exit(1);
-			}
-		}
-		
 		if(gettimeofday(&start, NULL) != 0){
 			fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
 			exit(1);
