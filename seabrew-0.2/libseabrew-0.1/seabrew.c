@@ -44,6 +44,22 @@ seabrew_bswabe_prv_t* seabrew_bswabe_keygen(seabrew_bswabe_pub_t* pub, seabrew_b
 	return prv;
 }
 
+seabrew_bswabe_d_t* seabrew_bswabe_extract_d(seabrew_bswabe_pub_t* pub, seabrew_bswabe_prv_t* prv){
+
+	seabrew_bswabe_d_t* d;
+	
+	if((d = malloc(sizeof(seabrew_bswabe_d_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	element_init_G2(d->d, pub->pub_f->p);
+	element_set(d->d, prv->prv_f->d);
+	d->version = prv->version;
+	
+	return d;
+}
+
 seabrew_bswabe_cph_t* seabrew_bswabe_enc(seabrew_bswabe_pub_t* pub, element_t m, char* policy ){
 	
 	seabrew_bswabe_cph_t* cph;
@@ -322,14 +338,156 @@ void seabrew_bswabe_update_pk(char* pub_file, seabrew_bswabe_u_x_t* u_x){
 	free(buf);
 	fclose(f_pub);
 }
-void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew_bswabe_u_x_t* u_x) {
+
+void seabrew_bswabe_update_d(seabrew_bswabe_pub_t* pub, char* d_file, seabrew_bswabe_upd_t* upd, seabrew_bswabe_d_t* d) {
 	element_t base;
+	element_t exponent;
+	seabrew_bswabe_upd_t* tmp;
 	unsigned char* buf;
-	uint32_t version;
+	uint32_t d_version;
+	uint32_t old_version;
+	int i;
+	FILE* f_d;
+	
+	/* Check for consistency */
+	tmp = upd;
+	old_version = tmp->v_uk;
+	tmp = tmp->next;
+	while(tmp){ // At the end of this cycle old_version will be the latest version
+		if(old_version != tmp->v_uk - 1U){
+			fprintf(stderr, "Update key inconsistent\n");
+			exit(1);
+		}
+		old_version = tmp->v_uk;
+		tmp = tmp->next;
+	}
+	
+	if((f_d = fopen(d_file, "r+")) == NULL) {
+		fprintf(stderr, "Error in opening %s. Error: %s\n", d_file, strerror(errno));
+		exit(1);
+	}
+	
+	// Fetch D key version
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_d);
+		exit(1);
+	}
+	
+	fseek(f_d, -4L, SEEK_END);
+	if(fread(buf, 1, 4L, f_d) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_d);
+		free(buf);
+		exit(1);
+	}
+	d_version = 0U;
+	for(i = 3; i >= 0; i-- )
+		d_version |= (buf[(3 - i)])<<(i*8);
+		
+	/* Extra consistency check */
+	if(d_version == old_version){
+		fprintf(stdout, "D version (%u) is equal to U's version (%u). There is no need to update this D\n", d_version, old_version);
+		free(buf);
+		fclose(f_d);
+		return;
+	}else if(d_version > old_version){
+		fprintf(stderr, "D version (%u) cannot be greater than U's version (%u)\n", d_version, upd->v_uk);
+		free(buf);
+		fclose(f_d);
+		exit(1);
+	} else if(upd->v_uk != d_version + 1U && upd->v_uk > d_version){
+		fprintf(stderr, "There are missing updates: from %u (D version + 1) to %u (oldest upd version - 1)\n", d_version + 1U, upd->v_uk - 1U);
+		free(buf);
+		fclose(f_d);
+		exit(1);
+	}
+	
+	/* Multiplication (Eq. 12) */
+	tmp = upd;
+	element_init_same_as(exponent, tmp->u_cp);
+	while(tmp->v_uk <= d_version){
+		tmp = tmp->next;
+	}
+	element_set(exponent, tmp->u_cp);
+	while(TRUE){
+		if(tmp->next){
+			tmp = tmp->next;
+			element_mul(exponent, exponent, tmp->u_cp);
+		}else{
+			d_version = tmp->v_uk;
+			break;
+		}
+	}
+	element_invert(exponent, exponent);
+	
+	// Exponentiation and write new D
+	element_init_G2(base, pub->pub_f->p);
+	free(buf);
+	if((buf = (unsigned char*) malloc(128UL)) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_d);
+		exit(1);
+	}
+	fseek(f_d, 4UL, SEEK_SET);
+	if(fread(buf, 1, 128L, f_d) != 128L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_d);
+		free(buf);
+		exit(1);
+	}
+	element_from_bytes(base, buf);
+
+	element_pow_zn(base, base, exponent);
+	element_to_bytes(buf, base);
+	fseek(f_d, 4UL, SEEK_SET);
+	fwrite(buf, 1, 128L, f_d);
+	
+	//Write new version
+	free(buf);
+	if((buf = (unsigned char*) malloc(sizeof(uint32_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		fclose(f_d);
+		exit(1);
+	}
+	buf[3] = d_version&0xff;
+	buf[2] = (d_version>>8)&0xff;
+	buf[1] = (d_version>>16)&0xff;
+	buf[0] = (d_version>>24)&0xff;
+	fseek(f_d, -4L, SEEK_END);
+	fwrite(buf, 1, 4L, f_d);
+	
+	/* Free memory */
+	free(buf);
+	element_clear(base);
+	element_clear(exponent);
+	fclose(f_d);
+}
+
+void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew_bswabe_upd_t* upd) {
+	element_t base;
+	element_t exponent;
+	seabrew_bswabe_upd_t* tmp;
+	unsigned char* buf;
+	uint32_t cph_version;
+	uint32_t old_version;
 	int i;
 	long pointer;
 	int len;
 	FILE* f_cph;
+	
+	/* Check for consistency */
+	tmp = upd;
+	old_version = tmp->v_uk;
+	tmp = tmp->next;
+	while(tmp){ // At the end of this cycle old_version will be the latest version
+		if(old_version != tmp->v_uk - 1U){
+			fprintf(stderr, "Update key inconsistent\n");
+			exit(1);
+		}
+		old_version = tmp->v_uk;
+		tmp = tmp->next;
+	}
 	
 	if((f_cph = fopen(cph_file, "r+")) == NULL) {
 		fprintf(stderr, "Error in opening %s. Error: %s\n", cph_file, strerror(errno));
@@ -342,30 +500,51 @@ void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew
 		fclose(f_cph);
 		exit(1);
 	}
-	fseek(f_cph, -4L, SEEK_END);
 	
+	fseek(f_cph, -4L, SEEK_END);
 	if(fread(buf, 1, 4L, f_cph) != 4L){
 		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
 		fclose(f_cph);
 		free(buf);
 		exit(1);
 	}
-	version = 0;
+	cph_version = 0U;
 	for(i = 3; i >= 0; i-- )
-		version |= (buf[(3 - i)])<<(i*8);
-	
-	if(version > u_x->version){
-		fprintf(stderr, "Ciphertext version (%u) cannot be greater than U's version (%u)\n", version, u_x->version);
+		cph_version |= (buf[(3 - i)])<<(i*8);
+		
+	/* Extra consistency check */
+	if(cph_version == old_version){
+		fprintf(stdout, "Ciphertext version (%u) is equal to U's version (%u). There is no need to update this ciphertext\n", cph_version, old_version);
+		free(buf);
+		fclose(f_cph);
+		return;
+	}else if(cph_version > old_version){
+		fprintf(stderr, "Ciphertext version (%u) cannot be greater than U's version (%u)\n", cph_version, upd->v_uk);
+		free(buf);
+		fclose(f_cph);
+		exit(1);
+	} else if(upd->v_uk != cph_version + 1U && upd->v_uk > cph_version){
+		fprintf(stderr, "There are missing updates: from %u (ciphertext version + 1) to %u (oldest upd version - 1)\n", cph_version + 1U, upd->v_uk - 1U);
 		free(buf);
 		fclose(f_cph);
 		exit(1);
 	}
 	
-	if(version == u_x->version){
-		fprintf(stdout, "Ciphertext version (%u) is equal to U's version (%u). There is no need to update this ciphertext\n", version, u_x->version);
-		free(buf);
-		fclose(f_cph);
-		return;
+	/* Multiplication (Eq. 12) */
+	tmp = upd;
+	element_init_same_as(exponent, tmp->u_cp);
+	while(tmp->v_uk <= cph_version){
+		tmp = tmp->next;
+	}
+	element_set(exponent, tmp->u_cp);
+	while(TRUE){
+		if(tmp->next){
+			tmp = tmp->next;
+			element_mul(exponent, exponent, tmp->u_cp);
+		}else{
+			cph_version = tmp->v_uk;
+			break;
+		}
 	}
 	
 	// Exponentiation and write new C
@@ -389,7 +568,7 @@ void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew
 		exit(1);
 	}
 	element_from_bytes(base, buf);
-	element_pow_zn(base, base, u_x->u_x);
+	element_pow_zn(base, base, exponent);
 	element_to_bytes(buf, base);
 	fseek(f_cph, pointer, SEEK_SET);
 	fwrite(buf, 1, 128L, f_cph);
@@ -401,20 +580,21 @@ void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew
 		fclose(f_cph);
 		exit(1);
 	}
-	buf[3] = u_x->version&0xff;
-	buf[2] = (u_x->version>>8)&0xff;
-	buf[1] = (u_x->version>>16)&0xff;
-	buf[0] = (u_x->version>>24)&0xff;
+	buf[3] = cph_version&0xff;
+	buf[2] = (cph_version>>8)&0xff;
+	buf[1] = (cph_version>>16)&0xff;
+	buf[0] = (cph_version>>24)&0xff;
 	fseek(f_cph, -4L, SEEK_END);
 	fwrite(buf, 1, 4L, f_cph);
 	
+	/* Free memory */
 	free(buf);
 	element_clear(base);
+	element_clear(exponent);
 	fclose(f_cph);
 }
 
-void seabrew_bswabe_update_dk(seabrew_bswabe_pub_t* pub, char* prv_file, seabrew_bswabe_u_x_t* u_x) {
-	element_t base;
+void seabrew_bswabe_update_dk(char* prv_file, seabrew_bswabe_d_t* d) {
 	unsigned char* buf;
 	uint32_t version;
 	int i;
@@ -443,39 +623,20 @@ void seabrew_bswabe_update_dk(seabrew_bswabe_pub_t* pub, char* prv_file, seabrew
 	for(i = 3; i >= 0; i-- )
 		version |= (buf[(3 - i)])<<(i*8);
 	
-	if(version > u_x->version){
-		fprintf(stderr, "Decryption key version (%u) cannot be greater than U's version (%u)\n", version, u_x->version);
+	if(version > d->version){
+		fprintf(stderr, "Decryption key version (%u) cannot be greater than D's version (%u)\n", version, d->version);
 		free(buf);
 		fclose(f_prv);
 		exit(1);
 	}
 	
-	if(version == u_x->version){
-		fprintf(stdout, "Decryption key version (%u) is equal to U's version (%u). There is no need to update this decryption key\n", version, u_x->version);
-		free(buf);
-		fclose(f_prv);
-		return;
-	}
-	
-	// Exponentiation and write new D
-	element_init_G2(base, pub->pub_f->p);
 	free(buf);
 	if((buf = (unsigned char*) malloc(128UL)) == NULL){
 		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		fclose(f_prv);
 		exit(1);
 	}
-	fseek(f_prv, 4UL, SEEK_SET);
-	if(fread(buf, 1, 128L, f_prv) != 128L){
-		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
-		fclose(f_prv);
-		free(buf);
-		exit(1);
-	}
-	element_from_bytes(base, buf);
-	
-	element_pow_zn(base, base, u_x->u_x);
-	element_to_bytes(buf, base);
+	element_to_bytes(buf, d->d);
 	fseek(f_prv, 4UL, SEEK_SET);
 	fwrite(buf, 1, 128UL, f_prv);
 	
@@ -486,15 +647,14 @@ void seabrew_bswabe_update_dk(seabrew_bswabe_pub_t* pub, char* prv_file, seabrew
 		fclose(f_prv);
 		exit(1);
 	}
-	buf[3] = u_x->version&0xff;
-	buf[2] = (u_x->version>>8)&0xff;
-	buf[1] = (u_x->version>>16)&0xff;
-	buf[0] = (u_x->version>>24)&0xff;
+	buf[3] = d->version&0xff;
+	buf[2] = (d->version>>8)&0xff;
+	buf[1] = (d->version>>16)&0xff;
+	buf[0] = (d->version>>24)&0xff;
 	fseek(f_prv, -4L, SEEK_END);
 	fwrite(buf, 1, 4L, f_prv);
 	
 	free(buf);
-	element_clear(base);
 	fclose(f_prv);
 }
 
@@ -549,68 +709,6 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 	}
 	tmp->next = NULL;
 	return upd;
-}
-
-seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_cp_t* u_cp){
-
-	seabrew_bswabe_upd_t* tmp;
-	seabrew_bswabe_u_cp_t* res;
-	uint32_t old_version;
-	
-	/* Check for consistency */
-	tmp = upd;
-	old_version = tmp->v_uk;
-	tmp = tmp->next;
-	while(tmp){
-		if(old_version != tmp->v_uk - 1U){
-			fprintf(stderr, "Update key inconsistent\n");
-			exit(1);
-		}
-		old_version = tmp->v_uk;
-		tmp = tmp->next;
-	}
-	
-	if((res = (seabrew_bswabe_u_cp_t*)malloc(sizeof(seabrew_bswabe_u_cp_t))) == NULL){
-		fprintf(stderr, "Error in allocating memeory. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	tmp = upd;
-	element_init_same_as(res->u_x, tmp->u_cp);
-	if(u_cp){
-		element_set(res->u_x, u_cp->u_x);
-		old_version = u_cp->version;
-	}else{
-		element_set1(res->u_x);
-		old_version = 1U;
-	}
-	if(u_cp){
-		if(tmp->v_uk != old_version + 1U){
-			fprintf(stderr, "Error: U's version is %u whereas upd starts at %u (should be %u)\n", old_version, tmp->v_uk, old_version + 1U);
-			free(res);
-			exit(1);
-		}
-	}
-	while(tmp->next){
-		element_mul(res->u_x, res->u_x, tmp->u_cp);
-		tmp = tmp->next;
-	}
-	element_mul(res->u_x, res->u_x, tmp->u_cp);
-	res->version = tmp->v_uk;
-	return res;
-}
-
-seabrew_bswabe_u_dk_t* extract_u_dk(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_dk_t* u_dk){
-
-	seabrew_bswabe_u_dk_t* res;
-	
-	if(u_dk){
-		element_invert(u_dk->u_x, u_dk->u_x);
-		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)u_dk);
-	}else{
-		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, NULL);
-	}
-	element_invert(res->u_x, res->u_x);
-	return res;
 }
 
 seabrew_bswabe_u_pk_t* extract_u_pk(seabrew_bswabe_upd_t* upd){

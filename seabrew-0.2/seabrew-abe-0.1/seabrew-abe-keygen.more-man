@@ -19,9 +19,18 @@ numerical attribute.
 
 [see also]
 .BR seabrew-abe-setup (1),
-.BR seabrew-abe-enc (1),
 .BR seabrew-abe-dec (1),
+.BR seabrew-abe-enc (1),
 .BR seabrew-abe-updatemk (1),
 .BR seabrew-abe-updatecp (1),
-.BR seabrew-abe-update-partial-updates (1),
-.BR seabrew-abe-update-pub-and-prv-partial (1)
+.BR seabrew-abe-updatedk (1),
+.BR seabrew-abe-updatepk (1),
+.BR seabrew-abe-extract (1),
+.BR seabrew-abe-extract-u-cp (1),
+.BR seabrew-abe-extract-u-dk (1),
+.BR seabrew-abe-extract-u-pk (1),
+.BR seabrew-abe-print-msk (1),
+.BR seabrew-abe-print-pub (1),
+.BR seabrew-abe-print-prv (1),
+.BR seabrew-abe-print-cph (1),
+.BR seabrew-abe-print-upd (1)

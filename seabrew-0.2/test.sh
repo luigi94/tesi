@@ -12,32 +12,23 @@ seabrew-abe-keygen -o kevin_priv_key pub_key master_key \
     business_staff strategy_team 'executive_level = 7' \
     'office = 2362'
 
-seabrew-abe-updatemk pub_key master_key upd_key -s 3256
-seabrew-abe-extract-u-cp upd_key pub_key u_cp
-seabrew-abe-extract-u-dk upd_key pub_key u_dk
-
-seabrew-abe-updatecp to_send.pdf.cpabe u_cp	pub_key && rm -f u_cp
-seabrew-abe-updatedk kevin_priv_key u_dk pub_key && rm -f u_dk
-    
-    
+seabrew-abe-updatemk pub_key master_key upd_key -s 3256    
 seabrew-abe-updatemk pub_key master_key upd_key -s 3205
-seabrew-abe-extract upd_key pub_key -o extracted
-seabrew-abe-extract-u-cp extracted pub_key u_cp
-seabrew-abe-extract-u-dk extracted pub_key u_dk
-
-seabrew-abe-updatecp to_send.pdf.cpabe u_cp	pub_key && rm -f u_cp
-seabrew-abe-updatedk kevin_priv_key u_dk pub_key && rm -f u_dk
+seabrew-abe-updatemk pub_key master_key upd_key -s 3206
+seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
+seabrew-abe-updatecp to_send.pdf.cpabe upd_key pub_key
+seabrew-abe-updatedk kevin_priv_key kevin_priv_key.d pub_key
 
 
-seabrew-abe-updatemk pub_key master_key upd_key -s 21245	
-seabrew-abe-extract upd_key pub_key -o extracted 
-seabrew-abe-extract-u-cp extracted pub_key u_cp
-seabrew-abe-extract-u-dk extracted pub_key u_dk
+seabrew-abe-updatemk pub_key master_key upd_key -s 21245
+seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
+seabrew-abe-updatecp to_send.pdf.cpabe upd_key pub_key
+seabrew-abe-updatedk kevin_priv_key kevin_priv_key.d pub_key
 
-seabrew-abe-updatecp to_send.pdf.cpabe u_cp	pub_key && rm -f u_cp
-seabrew-abe-updatedk kevin_priv_key u_dk pub_key && rm -f u_dk
-
-
+seabrew-abe-updatemk pub_key master_key upd_key -s 21245
+seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
+seabrew-abe-updatecp to_send.pdf.cpabe upd_key pub_key
+seabrew-abe-updatedk kevin_priv_key kevin_priv_key.d pub_key
 
 seabrew-abe-dec -k pub_key kevin_priv_key to_send.pdf.cpabe -o decrypted.pdf
 

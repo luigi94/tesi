@@ -11,12 +11,12 @@
 #include "common.h"
 
 char* usage =
-"Usage: seabrew-abe-updatedk [OPTION ...] PRV U_DK PUB_KEY\n"
+"Usage: seabrew-abe-updatedk [OPTION ...] PRV D PUB_KEY\n"
 "\n"
 "Blindly update the private PRV using the partial update key U_DK\n"
 "and public key PUB_KEY parameters.\n"
 "\n"
-"The new ciphertext is updated up to U_DK's version.\n"
+"The new ciphertext is updated up to D's version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -26,7 +26,7 @@ char* usage =
 "";
 
 char*  prv_file = 0;
-char*  u_dk_file = 0;
+char*  d_file = 0;
 char*  pub_file = 0;
 
 void
@@ -53,9 +53,9 @@ parse_args( int argc, char** argv )
 		{
 			prv_file = argv[i];
 		}
-		else if( !u_dk_file )
+		else if( !d_file )
 		{
-			u_dk_file = argv[i];
+			d_file = argv[i];
 		}
 		else if( !pub_file )
 		{
@@ -65,7 +65,7 @@ parse_args( int argc, char** argv )
 		{
 			die(usage);
 		}
-	if( !pub_file || !u_dk_file || !prv_file )
+	if( !pub_file || !d_file || !prv_file )
 		die(usage);
 }
 
@@ -74,19 +74,19 @@ main( int argc, char** argv )
 {
 	
 	seabrew_bswabe_pub_t* pub;
-	seabrew_bswabe_u_dk_t* u_dk;
+	seabrew_bswabe_d_t* d;
 	
 	parse_args(argc, argv);
 	
 	pbc_random_set_deterministic(2);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
-	u_dk = (seabrew_bswabe_u_dk_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(u_dk_file), 0, 1);
+	d = seabrew_bswabe_d_unserialize(pub, suck_file(d_file), 1);
 	
-	seabrew_bswabe_update_dk(pub, prv_file, u_dk);
+	seabrew_bswabe_update_dk(prv_file, d);
 	
-	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_dk);
-	free(u_dk);
+	seabrew_bswabe_d_free(d);
+	free(d);
 	
 	seabrew_bswabe_pub_free(pub);
 	free(pub);

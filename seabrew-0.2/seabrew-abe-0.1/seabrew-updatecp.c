@@ -11,7 +11,7 @@
 #include "common.h"
 
 char* usage =
-"Usage: seabrew-abe-updatecp [OPTION ...] CPH U_CP PUB_KEY\n"
+"Usage: seabrew-abe-update-d [OPTION ...] D UPD PUB_KEY\n"
 "\n"
 "Blindly update the cipher-text CPH using the partial update key U_CP\n"
 "and public key PUB_KEY parameters.\n"
@@ -25,8 +25,8 @@ char* usage =
 "                          (only for debugging)\n\n"
 "";
 
-char*  cph_file = 0;
-char*  u_cp_file = 0;
+char*  d_file = 0;
+char*  upd_file = 0;
 char*  pub_file = 0;
 
 void
@@ -49,13 +49,13 @@ parse_args( int argc, char** argv )
 		{
 			pbc_random_set_deterministic(0);
 		}
-		else if( !cph_file )
+		else if( !d_file )
 		{
-			cph_file = argv[i];
+			d_file = argv[i];
 		}
-		else if( !u_cp_file )
+		else if( !upd_file )
 		{
-			u_cp_file = argv[i];
+			upd_file = argv[i];
 		}
 		else if( !pub_file )
 		{
@@ -65,7 +65,7 @@ parse_args( int argc, char** argv )
 		{
 			die(usage);
 		}
-	if( !pub_file || !u_cp_file || !cph_file )
+	if( !pub_file || !upd_file || !d_file )
 		die(usage);
 }
 
@@ -74,19 +74,19 @@ main( int argc, char** argv )
 {
 	
 	seabrew_bswabe_pub_t* pub;
-	seabrew_bswabe_u_cp_t* u_cp;
+	seabrew_bswabe_upd_t* upd;
 	
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(3);
+	pbc_random_set_deterministic(32323);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
-	u_cp = (seabrew_bswabe_u_cp_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(u_cp_file), 0, 1);
+	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
-	seabrew_bswabe_update_cp(pub, cph_file, u_cp);
+	seabrew_bswabe_update_cp(pub, d_file, upd);
 	
-	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_cp);
-	free(u_cp);
+	seabrew_bswabe_upd_free(upd);
+	free(upd);
 	
 	seabrew_bswabe_pub_free(pub);
 	free(pub);

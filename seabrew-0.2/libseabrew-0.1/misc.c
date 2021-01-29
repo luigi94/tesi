@@ -212,6 +212,36 @@ seabrew_bswabe_u_x_t* seabrew_bswabe_u_x_unserialize(seabrew_bswabe_pub_t* pub, 
 	return u_x;
 }
 
+GByteArray* seabrew_bswabe_d_serialize(seabrew_bswabe_d_t* d ){
+	GByteArray* b;
+	b = g_byte_array_new();
+	
+	serialize_element(b, d->d);
+	serialize_uint32(b, d->version);
+	
+	return b;
+}
+
+seabrew_bswabe_d_t* seabrew_bswabe_d_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
+	seabrew_bswabe_d_t* d;
+	int offset = 0;
+	
+	if((d = (seabrew_bswabe_d_t*)malloc(sizeof(seabrew_bswabe_d_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	element_init_G2(d->d, pub->pub_f->p);
+	unserialize_element(b, &offset, d->d);
+	
+	d->version = unserialize_uint32(b, &offset);
+	
+	if( free )
+		g_byte_array_free(b, 1);
+
+	return d;
+}
+
+
 void seabrew_bswabe_pub_free(seabrew_bswabe_pub_t* pub){
 	bswabe_pub_free(pub->pub_f);
 	pub->version = 0U;
@@ -247,4 +277,8 @@ void seabrew_bswabe_upd_free(seabrew_bswabe_upd_t* head) {
 void seabrew_bswabe_u_x_free(seabrew_bswabe_u_x_t* u_x){
 	element_clear(u_x->u_x);
 	u_x->version = 0U;
+}
+void seabrew_bswabe_d_free(seabrew_bswabe_d_t* d){
+	element_clear(d->d);
+	d->version = 0U;
 }

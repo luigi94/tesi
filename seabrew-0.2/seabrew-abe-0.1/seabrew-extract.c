@@ -10,12 +10,15 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-extract UPD PUB -o FILE [-s START] [-e END]\n"
+"Usage: seabrew-abe-extract [OPTION] UPD PUB -o FILE [-s START] [-e END]\n"
 "\n"
-"Extract the update from version START to version END.\n"
+"Extract the update keys from version START to version END.\n"
 "If neither START nor END are passed, only the last update key\n"
 "will be extracted\n"
 "If only START is passed, then all the update keys from START\n"
+"will be extracted\n"
+"\n"
+"If only END is passed, then all the update keys up to END\n"
 "will be extracted\n"
 "\n"
 "The output will be written into FILE\n"
@@ -25,9 +28,9 @@ char* usage =
 " -v, --version                 print version information\n\n"
 " -d, --deterministic           use deterministic \"random\" numbers\n"
 "                               (only for debugging)\n\n"
-" -o, --output                  the output file\n\n"
-" -s, --start                   the version where extraction starts\n\n"
-" -e, --end                     the version where extraction ends\n\n"
+" -o, --output                  write the extracte update key(s) to FILE\n\n"
+" -s, --start                   the version from which extraction starts\n\n"
+" -e, --end                     the version to which extraction ends\n\n"
 "";
 
 char* upd_file = 0;
@@ -65,12 +68,9 @@ parse_args( int argc, char** argv )
 		{
 			pub_file = argv[i];
 		}
-		else if( !strcmp(argv[i], "-o") || !strcmp(argv[i], "--output") )
+		else if(!out_file)
 		{
-			if( ++i >= argc )
-				die(usage);
-			else
-				out_file = argv[i];
+			out_file = argv[i];
 		}
 		else if( !strcmp(argv[i], "-s") || !strcmp(argv[i], "--start") )
 		{
