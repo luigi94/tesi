@@ -64,15 +64,22 @@ int
 main( int argc, char** argv )
 {
 	seabrew_bswabe_pub_t* pub;
+	seabrew_bswabe_msk_t* msk;
 
 	parse_args(argc, argv);
+	
 	pbc_random_set_deterministic(8);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
+	msk = seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	
-	print_seabrew_msk_t(seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1));
+	print_seabrew_msk_t(msk);
+	
+	seabrew_bswabe_msk_free(msk);
+	free(msk);
 	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 	
 	return 0;
 }

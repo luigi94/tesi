@@ -65,7 +65,8 @@ main( int argc, char** argv )
 	seabrew_bswabe_prv_t* prv;
 	
 	parse_args(argc, argv);
-	pbc_random_set_deterministic(3246);
+	
+	pbc_random_set_deterministic(7);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	prv = seabrew_bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
@@ -73,7 +74,10 @@ main( int argc, char** argv )
 	print_seabrew_prv_t(prv);
 	
 	seabrew_bswabe_prv_free(prv);
+	free(prv);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 	
 	return 0;
 }

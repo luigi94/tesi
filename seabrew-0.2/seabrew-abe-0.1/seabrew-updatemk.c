@@ -32,7 +32,7 @@ char* usage =
 char*  pub_file = 0;
 char*  msk_file = 0;
 char*  upd_file = 0;
-unsigned seed = 0;
+
 void
 parse_args( int argc, char** argv )
 {

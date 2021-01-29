@@ -111,7 +111,8 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
-	pbc_random_set_deterministic(2);
+	
+	pbc_random_set_deterministic(14);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
@@ -121,7 +122,10 @@ main( int argc, char** argv )
 	spit_file(out_file, seabrew_bswabe_upd_serialize(extracted), 1);
 	
 	seabrew_bswabe_upd_free(upd);
+	free(upd);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 
 	return 0;
 }

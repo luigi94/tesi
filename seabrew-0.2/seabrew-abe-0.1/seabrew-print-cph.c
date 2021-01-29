@@ -68,7 +68,8 @@ main( int argc, char** argv )
 	int file_len;
 
 	parse_args(argc, argv);
-	pbc_random_set_deterministic(7);
+	
+	pbc_random_set_deterministic(9);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	read_cpabe_file(cph_file, &cph_buf, &file_len, &aes_buf);

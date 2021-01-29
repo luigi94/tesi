@@ -136,12 +136,12 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 /*
 	Extract the u_cp field (Eq. (12)) from update key upd
 */
-seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_cp_t* u_cp, int reset);
+seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_cp_t* u_cp);
 
 /*
 	Extract the u_dk field (Eq. (11, first equation)) from update key upd
 */
-seabrew_bswabe_u_dk_t* extract_u_dk(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_dk_t* u_cp, int reset);
+seabrew_bswabe_u_dk_t* extract_u_dk(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_dk_t* u_cp);
 
 /*
 	Extract the u_pk field (middle rquation of (8)) from update key upd

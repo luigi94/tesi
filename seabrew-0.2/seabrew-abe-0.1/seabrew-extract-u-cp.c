@@ -10,7 +10,7 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-extract-cp UPD PUB FILE [-r]\n"
+"Usage: seabrew-abe-extract-cp UPD PUB FILE\n"
 "\n"
 "Performs Eq. (12) operations\n"
 "\n"
@@ -21,14 +21,11 @@ char* usage =
 " -v, --version                 print version information\n\n"
 " -d, --deterministic           use deterministic \"random\" numbers\n"
 "                               (only for debugging)\n\n"
-" -r, --reset                   reset the content of FILE before writinf\n"
-"                               the result\n\n"
 "";
 
 char* upd_file = 0;
 char* pub_file = 0;
 char* out_file = 0;
-int reset = 0;
 
 void
 parse_args( int argc, char** argv )
@@ -62,10 +59,6 @@ parse_args( int argc, char** argv )
 		{
 			out_file = argv[i];
 		}
-		else if( !strcmp(argv[i], "-r") || !strcmp(argv[i], "--reset") )
-		{
-			reset = 1;
-		}
 		else
 			die(usage);
 			
@@ -81,15 +74,16 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
-	pbc_random_set_deterministic(4);
+	
+	pbc_random_set_deterministic(13);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
 	if( access(out_file, F_OK ) == -1 )
-		u_cp = extract_u_cp(upd, NULL, reset);
+		u_cp = extract_u_cp(upd, NULL);
 	else{
-		u_cp = extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(out_file), 0, 1), reset);
+		u_cp = extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)seabrew_bswabe_u_x_unserialize(pub, suck_file(out_file), 0, 1));
 	}
 	spit_file(out_file, seabrew_bswabe_u_x_serialize((seabrew_bswabe_u_x_t*)u_cp), 1);
 	

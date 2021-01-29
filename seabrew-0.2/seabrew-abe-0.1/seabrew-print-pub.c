@@ -59,13 +59,15 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 
 	parse_args(argc, argv);
-	pbc_random_set_deterministic(8);
+	
+	pbc_random_set_deterministic(6);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	
 	print_seabrew_pub_t(seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1));
 	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
 	
 	return 0;
 }

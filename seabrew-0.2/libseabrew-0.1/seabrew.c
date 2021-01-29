@@ -94,7 +94,12 @@ int check_consistency(char* upd_file){ // 1 if consistent, 0 otherwise
 	}
 	pointer = 156L;
 	fseek(f, pointer, SEEK_SET);
-	fread(buf, 1, 4L, f);
+	if(fread(buf, 1, 4L, f) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f);
+		free(buf);
+		exit(1);
+	}
 	last_version = 0;
 	for(i = 3; i >= 0; i-- )
 		last_version |= (buf[(3 - i)])<<(i*8);
@@ -113,11 +118,16 @@ int check_consistency(char* upd_file){ // 1 if consistent, 0 otherwise
 		if(pointer > dim)
 			break;
 		fseek(f, pointer, SEEK_SET);
-		fread(buf, 1, 4L, f);
-		current_version = 0;
+		if(fread(buf, 1, 4L, f) != 4L){
+			fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+			fclose(f);
+			free(buf);
+			exit(1);
+		}
+		current_version = 0U;
 		for(i = 3; i >= 0; i-- )
 			current_version |= (buf[(3 - i)])<<(i*8);
-		if(current_version <= 0 || last_version != current_version - 1U){
+		if(current_version <= 0U || last_version != current_version - 1U){
 			fclose(f);
 			free(buf);
 			return 0;
@@ -168,7 +178,12 @@ void seabrew_bswabe_update_mk(seabrew_bswabe_pub_t* pub, char* msk_file, char* u
 		goto exit_label1;
 	}
 	fseek(f, 4L, SEEK_SET);
-	fread(buf, 1, 20L, f);
+	if(fread(buf, 1, 20L, f) != 20L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f);
+		free(buf);
+		exit(1);
+	}
 	element_from_bytes(old_beta, buf);
 	
 	// Write new beta
@@ -185,7 +200,12 @@ void seabrew_bswabe_update_mk(seabrew_bswabe_pub_t* pub, char* msk_file, char* u
 		goto exit_label1;;
 	}
 	fseek(f, 156L, SEEK_SET);
-	fread(buf, 1, 4L, f);
+	if(fread(buf, 1, 4L, f) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f);
+		free(buf);
+		exit(1);
+	}
 	for (i = 3; i >= 0; i--)
 		if (++buf[i])
 			break;
@@ -250,7 +270,12 @@ void seabrew_bswabe_update_pk(char* pub_file, seabrew_bswabe_u_x_t* u_x){
 	}
 	fseek(f_pub, -4L, SEEK_END);
 	
-	fread(buf, 1, 4L, f_pub);
+	if(fread(buf, 1, 4L, f_pub) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_pub);
+		free(buf);
+		exit(1);
+	}
 	version = 0;
 	for(i = 3; i >= 0; i-- )
 		version |= (buf[(3 - i)])<<(i*8);
@@ -319,7 +344,12 @@ void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew
 	}
 	fseek(f_cph, -4L, SEEK_END);
 	
-	fread(buf, 1, 4L, f_cph);
+	if(fread(buf, 1, 4L, f_cph) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_cph);
+		free(buf);
+		exit(1);
+	}
 	version = 0;
 	for(i = 3; i >= 0; i-- )
 		version |= (buf[(3 - i)])<<(i*8);
@@ -352,7 +382,12 @@ void seabrew_bswabe_update_cp(seabrew_bswabe_pub_t* pub, char* cph_file, seabrew
 		len |= fgetc(f_cph)<<(i*8);
 	pointer = (long) len + 148L;
 	fseek(f_cph, pointer, SEEK_SET);
-	fread(buf, 1, 128L, f_cph);
+	if(fread(buf, 1, 128L, f_cph) != 128L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_cph);
+		free(buf);
+		exit(1);
+	}
 	element_from_bytes(base, buf);
 	element_pow_zn(base, base, u_x->u_x);
 	element_to_bytes(buf, base);
@@ -398,7 +433,12 @@ void seabrew_bswabe_update_dk(seabrew_bswabe_pub_t* pub, char* prv_file, seabrew
 	}
 	fseek(f_prv, -4L, SEEK_END);
 	
-	fread(buf, 1, 4L, f_prv);
+	if(fread(buf, 1, 4L, f_prv) != 4L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_prv);
+		free(buf);
+		exit(1);
+	}
 	version = 0;
 	for(i = 3; i >= 0; i-- )
 		version |= (buf[(3 - i)])<<(i*8);
@@ -426,7 +466,12 @@ void seabrew_bswabe_update_dk(seabrew_bswabe_pub_t* pub, char* prv_file, seabrew
 		exit(1);
 	}
 	fseek(f_prv, 4UL, SEEK_SET);
-	fread(buf, 1, 128L, f_prv);
+	if(fread(buf, 1, 128L, f_prv) != 128L){
+		fprintf(stderr, "Error in reading from file. Error: %s\n", strerror(errno));
+		fclose(f_prv);
+		free(buf);
+		exit(1);
+	}
 	element_from_bytes(base, buf);
 	
 	element_pow_zn(base, base, u_x->u_x);
@@ -506,7 +551,7 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 	return upd;
 }
 
-seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_cp_t* u_cp, int reset){
+seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_cp_t* u_cp){
 
 	seabrew_bswabe_upd_t* tmp;
 	seabrew_bswabe_u_cp_t* res;
@@ -531,14 +576,14 @@ seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_
 	}
 	tmp = upd;
 	element_init_same_as(res->u_x, tmp->u_cp);
-	if(u_cp == NULL || reset == 1){
-		element_set1(res->u_x);
-	}
-	else{
+	if(u_cp){
 		element_set(res->u_x, u_cp->u_x);
 		old_version = u_cp->version;
+	}else{
+		element_set1(res->u_x);
+		old_version = 1U;
 	}
-	if(u_cp != NULL && reset != 1){
+	if(u_cp){
 		if(tmp->v_uk != old_version + 1U){
 			fprintf(stderr, "Error: U's version is %u whereas upd starts at %u (should be %u)\n", old_version, tmp->v_uk, old_version + 1U);
 			free(res);
@@ -554,15 +599,15 @@ seabrew_bswabe_u_cp_t* extract_u_cp(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_
 	return res;
 }
 
-seabrew_bswabe_u_dk_t* extract_u_dk(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_dk_t* u_dk, int reset){
+seabrew_bswabe_u_dk_t* extract_u_dk(seabrew_bswabe_upd_t* upd, seabrew_bswabe_u_dk_t* u_dk){
 
 	seabrew_bswabe_u_dk_t* res;
 	
 	if(u_dk){
 		element_invert(u_dk->u_x, u_dk->u_x);
-		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)u_dk, reset);
+		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, (seabrew_bswabe_u_cp_t*)u_dk);
 	}else{
-		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, NULL, reset);
+		res = (seabrew_bswabe_u_dk_t*)extract_u_cp(upd, NULL);
 	}
 	element_invert(res->u_x, res->u_x);
 	return res;
