@@ -10,14 +10,12 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-print-upd UPD PUB\n"
+"Usage: seabrew-abe-print-upd [OPTION ...] UPD_KEY PUB_KEY\n"
 "\n"
-"Print the master key UPD.\n"
+"Print the update key(s) UPD_KEY.\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help                    print this message\n\n"
 " -v, --version                 print version information\n\n"
-" -p, --output-public-key FILE  write public key to FILE\n\n"
-" -m, --output-master-key FILE  write master secret key to FILE\n\n"
 " -d, --deterministic           use deterministic \"random\" numbers\n"
 "                               (only for debugging)\n\n"
 "";
@@ -67,8 +65,6 @@ main( int argc, char** argv )
 	seabrew_bswabe_upd_t* upd;
 
 	parse_args(argc, argv);
-	
-	pbc_random_set_deterministic(5);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);

@@ -3,6 +3,7 @@ extern "C" {
 #endif
 
 #include "bswabe.h"
+#define UPD_LEN 160
 
 typedef struct seabrew_bswabe_pub_s
 {
@@ -44,12 +45,12 @@ struct seabrew_bswabe_upd_s
 
 typedef struct seabrew_bswabe_upd_s seabrew_bswabe_upd_t;
 
-typedef struct seabrew_bswabe_u_x_s
+typedef struct seabrew_bswabe_u_pk_s
 {
+	element_t u_pk;
 	uint32_t version;
-	element_t u_x;
 
-} seabrew_bswabe_u_x_t;
+} seabrew_bswabe_u_pk_t;
 
 typedef struct seabrew_bswabe_d_s
 {
@@ -57,8 +58,6 @@ typedef struct seabrew_bswabe_d_s
 	uint32_t version;
 
 } seabrew_bswabe_d_t;
-
-typedef seabrew_bswabe_u_x_t seabrew_bswabe_u_pk_t;
 
 /*
   Generate a public key and corresponding master secret key, and
@@ -116,7 +115,7 @@ int seabrew_bswabe_dec(seabrew_bswabe_pub_t* pub, seabrew_bswabe_prv_t* prv, sea
 	Update the master secret key and generates (or updates if the
 	passed file exists and it is valid) a new update-key.
 */
-void seabrew_bswabe_update_mk(seabrew_bswabe_pub_t* pub, char* msk_file, char* upd_file);
+seabrew_bswabe_upd_t* seabrew_bswabe_update_mk(seabrew_bswabe_pub_t* pub, char* msk_file, seabrew_bswabe_upd_t* upd_file);
 
 /*
 	Update the public using the informations contained in the update key
@@ -149,7 +148,7 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 seabrew_bswabe_u_pk_t* extract_u_pk(seabrew_bswabe_upd_t* upd);
 
 /*
-	Extract the d field and version of a private key*
+	Extract the d field and version of a private key
 */
 seabrew_bswabe_d_t* seabrew_bswabe_extract_d(seabrew_bswabe_pub_t* pub, seabrew_bswabe_prv_t* prv);
 
@@ -161,7 +160,7 @@ GByteArray* seabrew_bswabe_msk_serialize(seabrew_bswabe_msk_t* msk );
 GByteArray* seabrew_bswabe_prv_serialize(seabrew_bswabe_prv_t* prv );
 GByteArray* seabrew_bswabe_cph_serialize(seabrew_bswabe_cph_t* cph );
 GByteArray* seabrew_bswabe_upd_serialize(seabrew_bswabe_upd_t* upd );
-GByteArray* seabrew_bswabe_u_x_serialize(seabrew_bswabe_u_x_t* u_x );
+GByteArray* seabrew_bswabe_u_pk_serialize(seabrew_bswabe_u_pk_t* u_pk );
 GByteArray* seabrew_bswabe_d_serialize(seabrew_bswabe_d_t* d );
 void serialize_uint32(GByteArray* b, uint32_t k);
 void serialize_element( GByteArray* b, element_t e );
@@ -175,7 +174,7 @@ seabrew_bswabe_msk_t* seabrew_bswabe_msk_unserialize( seabrew_bswabe_pub_t* pub,
 seabrew_bswabe_prv_t* seabrew_bswabe_prv_unserialize( seabrew_bswabe_pub_t* pub, GByteArray* b, int free );
 seabrew_bswabe_cph_t* seabrew_bswabe_cph_unserialize( seabrew_bswabe_pub_t* pub, GByteArray* b, int free );
 seabrew_bswabe_upd_t* seabrew_bswabe_upd_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free );
-seabrew_bswabe_u_x_t* seabrew_bswabe_u_x_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int group, int free );
+seabrew_bswabe_u_pk_t* seabrew_bswabe_u_pk_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free );
 seabrew_bswabe_d_t* seabrew_bswabe_d_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free );
 uint32_t unserialize_uint32( GByteArray* b, int* offset );
 void unserialize_element( GByteArray* b, int* offset, element_t e );
@@ -188,7 +187,7 @@ void seabrew_bswabe_msk_free( seabrew_bswabe_msk_t* msk );
 void seabrew_bswabe_prv_free( seabrew_bswabe_prv_t* prv );
 void seabrew_bswabe_cph_free( seabrew_bswabe_cph_t* cph );
 void seabrew_bswabe_upd_free( seabrew_bswabe_upd_t* upd );
-void seabrew_bswabe_u_x_free( seabrew_bswabe_u_x_t* u_x );
+void seabrew_bswabe_u_pk_free( seabrew_bswabe_u_pk_t* u_pk );
 void seabrew_bswabe_d_free(seabrew_bswabe_d_t* d);
 
 void update_file( char* file, GByteArray* b, int free );
@@ -198,7 +197,6 @@ void print_seabrew_pub_t(seabrew_bswabe_pub_t* pub);
 void print_seabrew_msk_t(seabrew_bswabe_msk_t* msk);
 void print_seabrew_prv_t(seabrew_bswabe_prv_t* prv);
 void print_seabrew_cph_t(seabrew_bswabe_cph_t* cph);
-void print_seabrew_d_t(seabrew_bswabe_d_t* d);
 
 #if defined (__cplusplus)
 }

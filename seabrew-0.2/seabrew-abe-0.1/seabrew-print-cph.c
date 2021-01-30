@@ -10,7 +10,7 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-print-cph CPH PUB\n"
+"Usage: seabrew-abe-print-cph [OPTION ...] CPH PUB_KEY\n"
 "\n"
 "Print the ciphertext CPH.\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
@@ -69,8 +69,6 @@ main( int argc, char** argv )
 
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(9);
-	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	read_cpabe_file(cph_file, &cph_buf, &file_len, &aes_buf);
 	
@@ -81,7 +79,11 @@ main( int argc, char** argv )
 	g_byte_array_free(aes_buf, 1);
 	
 	seabrew_bswabe_cph_free(cph);
+	free(cph);
+	
 	seabrew_bswabe_pub_free(pub);
+	free(pub);
+	
 	file_len = 0;
 	
 	return 0;

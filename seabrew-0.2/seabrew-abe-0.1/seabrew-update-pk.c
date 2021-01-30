@@ -11,12 +11,12 @@
 #include "common.h"
 
 char* usage =
-"Usage: seabrew-abe-updatedk [OPTION ...] PRV D PUB_KEY\n"
+"Usage: seabrew-abe-updatepk [OPTION ...] PUB_KEY U_PK\n"
 "\n"
-"Blindly update the private PRV using the partial update key U_DK\n"
-"and public key PUB_KEY parameters.\n"
+"Substitute the h field containted in the public key PUB_KEY\n"
+"with that contained in U_PK, thus updating PUB_KEY.\n"
 "\n"
-"The new ciphertext is updated up to D's version.\n"
+"The new public key is updated up to the version contained in U_PK.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -25,8 +25,7 @@ char* usage =
 "                          (only for debugging)\n\n"
 "";
 
-char*  prv_file = 0;
-char*  d_file = 0;
+char*  u_pk_file = 0;
 char*  pub_file = 0;
 
 void
@@ -42,30 +41,26 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(SEABREW_ABE_VERSION, "-seabrew-updatedk");
+			printf(SEABREW_ABE_VERSION, "-seabrew-update-pk");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
 		{
 			pbc_random_set_deterministic(0);
 		}
-		else if( !prv_file )
-		{
-			prv_file = argv[i];
-		}
-		else if( !d_file )
-		{
-			d_file = argv[i];
-		}
 		else if( !pub_file )
 		{
 			pub_file = argv[i];
+		}
+		else if( !u_pk_file )
+		{
+			u_pk_file = argv[i];
 		}
 		else
 		{
 			die(usage);
 		}
-	if( !pub_file || !d_file || !prv_file )
+	if( !pub_file || !u_pk_file )
 		die(usage);
 }
 
@@ -74,19 +69,17 @@ main( int argc, char** argv )
 {
 	
 	seabrew_bswabe_pub_t* pub;
-	seabrew_bswabe_d_t* d;
+	seabrew_bswabe_u_pk_t* u_pk;
 	
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(2);
-	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
-	d = seabrew_bswabe_d_unserialize(pub, suck_file(d_file), 1);
+	u_pk = (seabrew_bswabe_u_pk_t*)seabrew_bswabe_u_pk_unserialize(pub, suck_file(u_pk_file), 1);
 	
-	seabrew_bswabe_update_dk(prv_file, d);
+	seabrew_bswabe_update_pk(pub_file, u_pk);
 	
-	seabrew_bswabe_d_free(d);
-	free(d);
+	seabrew_bswabe_u_pk_free(u_pk);
+	free(u_pk);
 	
 	seabrew_bswabe_pub_free(pub);
 	free(pub);

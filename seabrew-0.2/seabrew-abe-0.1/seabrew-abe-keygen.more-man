@@ -2,7 +2,7 @@
 
 Generating a key for a new employee Sara:
 
-  $ seabrew-abe-keygen -o sara_priv_key -p sara_partial_updates pub_key master_key \\
+  $ seabrew-abe-keygen -o sara_priv_key pub_key master_key \\
 .br
       sysadmin it_department
 
@@ -21,14 +21,13 @@ numerical attribute.
 .BR seabrew-abe-setup (1),
 .BR seabrew-abe-dec (1),
 .BR seabrew-abe-enc (1),
-.BR seabrew-abe-updatemk (1),
-.BR seabrew-abe-updatecp (1),
-.BR seabrew-abe-updatedk (1),
-.BR seabrew-abe-updatepk (1),
-.BR seabrew-abe-extract (1),
-.BR seabrew-abe-extract-u-cp (1),
-.BR seabrew-abe-extract-u-dk (1),
+.BR seabrew-abe-update-mk (1),
+.BR seabrew-abe-update-cp (1),
+.BR seabrew-abe-update-dk (1),
+.BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-extract-d (1),
 .BR seabrew-abe-extract-u-pk (1),
+.BR seabrew-abe-extract (1),
 .BR seabrew-abe-print-msk (1),
 .BR seabrew-abe-print-pub (1),
 .BR seabrew-abe-print-prv (1),

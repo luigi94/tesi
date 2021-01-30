@@ -23,3 +23,7 @@ with some attributes and encrypt a PDF document.
 Then it will update the key and the ciphertext and finally it
 will decrypt the ciphertext. Edit this script to test different
 sequences of revocation/key updates.
+
+For more information about SEA-BREW scheme and its applications
+refer to:
+	https://www.sciencedirect.com/science/article/abs/pii/S2214212620308413

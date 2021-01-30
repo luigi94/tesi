@@ -1,11 +1,14 @@
-.TH SEABREW-ABE-PRINT-PUB "1" "January 2021" "SRI International" "User Commands"
+.TH SEABREW-ABE-UPDATE-DK "1" "January 2021" "SRI International" "User Commands"
 .SH NAME
-seabrew-abe-print-pub \- manual page for seabrew-abe-print-pub 0.1
+seabrew-abe-update-dk \- manual page for seabrew-abe-update-dk 0.1
 .SH SYNOPSIS
-.B seabrew-abe-print-pub
-[\fIOPTION \fR...] \fI PUB_KEY \fR
+.B seabrew-abe-update-dk
+[\fIOPTION \fR...] \fI PRV_KEY D_FILE PUB_KEY \fR
 .SH DESCRIPTION
-Print the public key PUB_KEY.
+Substitute the D field containted in the private key PRV_KEY
+with that contained in D_FILE, thus updating RPV_KEY.
+.PP
+The new private key is updated up to the version contained in D_FILE.
 .PP
 Mandatory arguments to long options are mandatory for short options too.
 .TP
@@ -20,9 +23,9 @@ use deterministic "random" numbers
 (only for debugging)
 .SH EXAMPLES
 
-Print the public key pub_key:
+Update the private key prv_key using the D field contained in D_FILE:
 
-  $ seabrew-abe-print-pub pub_key
+  $ seabrew-abe-update-dk prv_key prv_key.d pub_key
 
 .SH "REPORTING BUGS"
 Report bugs to University of Pisa.
@@ -33,12 +36,12 @@ Report bugs to University of Pisa.
 .BR seabrew-abe-enc (1),
 .BR seabrew-abe-update-mk (1),
 .BR seabrew-abe-update-cp (1),
-.BR seabrew-abe-update-dk (1),
 .BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-extract (1),
 .BR seabrew-abe-extract-d (1),
 .BR seabrew-abe-extract-u-pk (1),
-.BR seabrew-abe-extract (1),
 .BR seabrew-abe-print-msk (1),
+.BR seabrew-abe-print-pub (1),
 .BR seabrew-abe-print-cph (1),
 .BR seabrew-abe-print-prv (1),
 .BR seabrew-abe-print-upd (1)

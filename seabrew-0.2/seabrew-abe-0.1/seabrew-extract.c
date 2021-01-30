@@ -10,9 +10,9 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-extract [OPTION] UPD PUB -o FILE [-s START] [-e END]\n"
+"Usage: seabrew-abe-extract [OPTION ...] UPD PUB -o FILE [-s START] [-e END]\n"
 "\n"
-"Extract the update keys from version START to version END.\n"
+"Extract the update key(s) from version START to version END.\n"
 "If neither START nor END are passed, only the last update key\n"
 "will be extracted\n"
 "If only START is passed, then all the update keys from START\n"
@@ -30,7 +30,7 @@ char* usage =
 "                               (only for debugging)\n\n"
 " -o, --output                  write the extracte update key(s) to FILE\n\n"
 " -s, --start                   the version from which extraction starts\n\n"
-" -e, --end                     the version to which extraction ends\n\n"
+" -e, --end                     the version at which extraction ends\n\n"
 "";
 
 char* upd_file = 0;
@@ -111,8 +111,6 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
-	
-	pbc_random_set_deterministic(14);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);

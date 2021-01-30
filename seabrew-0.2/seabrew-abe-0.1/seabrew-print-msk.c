@@ -10,14 +10,12 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-print-msk MSK PUB\n"
+"Usage: seabrew-abe-print-msk [OPTION ...] MSK_KEY PUB_KEY\n"
 "\n"
-"Print the master key MSK.\n"
+"Print the master key MSK_KEY.\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help                    print this message\n\n"
 " -v, --version                 print version information\n\n"
-" -p, --output-public-key FILE  write public key to FILE\n\n"
-" -m, --output-master-key FILE  write master secret key to FILE\n\n"
 " -d, --deterministic           use deterministic \"random\" numbers\n"
 "                               (only for debugging)\n\n"
 "";
@@ -67,8 +65,6 @@ main( int argc, char** argv )
 	seabrew_bswabe_msk_t* msk;
 
 	parse_args(argc, argv);
-	
-	pbc_random_set_deterministic(8);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1);

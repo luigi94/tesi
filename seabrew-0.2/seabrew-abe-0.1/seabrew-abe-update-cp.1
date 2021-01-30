@@ -1,11 +1,14 @@
-.TH SEABREW-ABE-PRINT-PUB "1" "January 2021" "SRI International" "User Commands"
+.TH SEABREW-ABE-UPDATE-CP "1" "January 2021" "SRI International" "User Commands"
 .SH NAME
-seabrew-abe-print-pub \- manual page for seabrew-abe-print-pub 0.1
+seabrew-abe-update-cp \- manual page for seabrew-abe-update-cp 0.1
 .SH SYNOPSIS
-.B seabrew-abe-print-pub
-[\fIOPTION \fR...] \fI PUB_KEY \fR
+.B seabrew-abe-update-cp
+[\fIOPTION \fR...] \fI CPH UPD_KEY PUB_KEY \fR
 .SH DESCRIPTION
-Print the public key PUB_KEY.
+Blindly update the ciphertext CPH using the partial update key(s) UPD_KEY
+and public key PUB_KEY.
+.PP
+The new ciphertext is updated up to UPD_KEY's latest version.
 .PP
 Mandatory arguments to long options are mandatory for short options too.
 .TP
@@ -20,9 +23,9 @@ use deterministic "random" numbers
 (only for debugging)
 .SH EXAMPLES
 
-Print the public key pub_key:
+Update the ciphertext file.txt.cpabe up to the latest upd_key's version:
 
-  $ seabrew-abe-print-pub pub_key
+  $ seabrew-abe-update-cp file.txt.cpabe upd_key pub_key
 
 .SH "REPORTING BUGS"
 Report bugs to University of Pisa.
@@ -32,13 +35,13 @@ Report bugs to University of Pisa.
 .BR seabrew-abe-dec (1),
 .BR seabrew-abe-enc (1),
 .BR seabrew-abe-update-mk (1),
-.BR seabrew-abe-update-cp (1),
 .BR seabrew-abe-update-dk (1),
 .BR seabrew-abe-update-pk (1),
 .BR seabrew-abe-extract-d (1),
 .BR seabrew-abe-extract-u-pk (1),
 .BR seabrew-abe-extract (1),
 .BR seabrew-abe-print-msk (1),
+.BR seabrew-abe-print-pub (1),
 .BR seabrew-abe-print-cph (1),
 .BR seabrew-abe-print-prv (1),
 .BR seabrew-abe-print-upd (1)

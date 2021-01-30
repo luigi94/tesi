@@ -11,12 +11,12 @@
 #include "common.h"
 
 char* usage =
-"Usage: seabrew-abe-updatecp [OPTION ...] D UPD PUB_KEY\n"
+"Usage: seabrew-abe-update-d [OPTION ...] D_FILE UPD_KEY PUB_KEY\n"
 "\n"
-"Blindly update the cipher-text CPH using the partial update key U_CP\n"
-"and public key PUB_KEY parameters.\n"
+"Update the D field contained in D_FILE using the update key(s) UPD_KEY\n"
+"and the public key PUB_KEY.\n"
 "\n"
-"The new ciphertext is updated up to U_CP's version.\n"
+"The new D field is updated up to UPD_KEY's latest version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -79,8 +79,6 @@ main( int argc, char** argv )
 	
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(3);
-	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
@@ -98,4 +96,3 @@ main( int argc, char** argv )
 	
 	return 0;
 }
-

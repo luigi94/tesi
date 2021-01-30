@@ -16,7 +16,8 @@ char* usage =
 "Generate a key with the listed attributes using public key PUB_KEY and\n"
 "master secret key MASTER_KEY. Output will be written to the file\n"
 "\"priv_key\" unless the -o option is specified.\n"
-"Additionally, set the generated key's version to the MASTER_KEY's version.\n"
+"Additionally, set the generated key's version to the MASTER_KEY's version\n"
+"and generate a \".s\" extension file containing the D field.\n"
 "\n"
 "Attributes come in two forms: non-numerical and numerical. Non-numerical\n"
 "attributes are simply any string of letters, digits, and underscores\n"
@@ -113,6 +114,10 @@ parse_args( int argc, char** argv )
 	for( ap = alist; ap; ap = ap->next )
 		attrs[i++] = ap->data;
 	attrs[i] = 0;
+	
+	g_slist_free(alist);
+	g_slist_free(ap);
+	free(ap);
 }
 
 int
@@ -125,13 +130,13 @@ main( int argc, char** argv )
 
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(10);
-	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	msk = seabrew_bswabe_msk_unserialize(pub, suck_file(msk_file), 1);
 	
 	prv = seabrew_bswabe_keygen(pub, msk, attrs);
 	spit_file(out_file, seabrew_bswabe_prv_serialize(prv), 1);
+	
+	free(attrs);
 	
 	d = seabrew_bswabe_extract_d(pub, prv);
 	spit_file(g_strdup_printf("%s.d", out_file), seabrew_bswabe_d_serialize(d), 1);

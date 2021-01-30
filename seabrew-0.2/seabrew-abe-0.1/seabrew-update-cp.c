@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <glib.h>
 #include <pbc.h>
 #include <pbc_random.h>
@@ -10,17 +11,12 @@
 #include "common.h"
 
 char* usage =
-"Usage: seabrew-abe-updatemk [OPTION ...] PUB_KEY MASTER_KEY UPD_KEY\n"
+"Usage: seabrew-abe-update-cp [OPTION ...] CPH UPD_KEY PUB_KEY\n"
 "\n"
-"Update the MASTER_KEY using the public key PUB_KEY and\n"
-"generate an update key UPD_KEY of one version greater than \n"
-"MASTER_KEY's.\n"
+"Blindly update the ciphertext CPH using the partial update key(s) UPD_KEY\n"
+"and public key PUB_KEY.\n"
 "\n"
-"If the file passed through UPD_KEY exists and it is valid\n"
-"then it will be update accordingly, otherwise it will be\n"
-"generated from scratch.\n"
-"\n"
-"The first version of UPD_KEY will be, in any case, 1.\n"
+"The new ciphertext is updated up to UPD_KEY's latest version.\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help               print this message\n\n"
@@ -29,9 +25,9 @@ char* usage =
 "                          (only for debugging)\n\n"
 "";
 
-char*  pub_file = 0;
-char*  msk_file = 0;
+char*  cph_file = 0;
 char*  upd_file = 0;
+char*  pub_file = 0;
 
 void
 parse_args( int argc, char** argv )
@@ -46,54 +42,53 @@ parse_args( int argc, char** argv )
 		}
 		else if( !strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") )
 		{
-			printf(SEABREW_ABE_VERSION, "-seabrew-updatemk");
+			printf(SEABREW_ABE_VERSION, "-seabrew-update-cp");
 			exit(0);
 		}
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
 		{
 			pbc_random_set_deterministic(0);
 		}
-		else if( !strcmp(argv[i], "-s") || !strcmp(argv[i], "--seed") )
+		else if( !cph_file )
 		{
-			if( ++i >= argc )
-				die(usage);
-			else
-				pbc_random_set_deterministic((unsigned)atoi(argv[i]));
-		}
-		else if( !pub_file )
-		{
-			pub_file = argv[i];
-		}
-		else if( !msk_file )
-		{
-			msk_file = argv[i];
+			cph_file = argv[i];
 		}
 		else if( !upd_file )
 		{
 			upd_file = argv[i];
 		}
+		else if( !pub_file )
+		{
+			pub_file = argv[i];
+		}
 		else
 		{
 			die(usage);
 		}
-		
-	if( !pub_file || !msk_file || !upd_file)
+	if( !pub_file || !upd_file || !cph_file )
 		die(usage);
 }
 
 int
 main( int argc, char** argv )
 {
+	
 	seabrew_bswabe_pub_t* pub;
+	seabrew_bswabe_upd_t* upd;
 	
 	parse_args(argc, argv);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
+	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
-	seabrew_bswabe_update_mk(pub, msk_file, upd_file);
+	seabrew_bswabe_update_cp(pub, cph_file, upd);
+	
+	seabrew_bswabe_upd_free(upd);
+	free(upd);
 	
 	seabrew_bswabe_pub_free(pub);
 	free(pub);
 	
 	return 0;
 }
+

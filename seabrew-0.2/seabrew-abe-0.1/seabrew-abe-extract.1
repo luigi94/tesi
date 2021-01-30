@@ -5,7 +5,7 @@ seabrew-abe-extract \- manual page for seabrew-abe-extract 0.1
 .B seabrew-abe-extract
 [\fIOPTION \fR...] \fIUPD PUB FILE\fR
 .SH DESCRIPTION
-Extract the update keys from version START to version END.
+Extract the update key(s) from version START to version END.
 .PP
 If neither START nor END are passed, only the last update key
 will be extracted.
@@ -37,7 +37,7 @@ write the extracted update key(s) to FILE
 the version from which the extraction starts
 .TP
 \fB\-v\fR, \fB\-\-version\fR
-the version to which the extraction ends
+the version at which the extraction ends
 .SH EXAMPLES
 
 Extract only the last update key
@@ -63,12 +63,11 @@ Report bugs to University of Pisa.
 .BR seabrew-abe-keygen (1),
 .BR seabrew-abe-dec (1),
 .BR seabrew-abe-enc (1),
-.BR seabrew-abe-updatemk (1),
-.BR seabrew-abe-updatecp (1),
-.BR seabrew-abe-updatedk (1),
-.BR seabrew-abe-updatepk (1),
-.BR seabrew-abe-extract-u-cp(1),
-.BR seabrew-abe-extract-u-dk (1),
+.BR seabrew-abe-update-mk (1),
+.BR seabrew-abe-update-cp (1),
+.BR seabrew-abe-update-dk (1),
+.BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-extract-d (1),
 .BR seabrew-abe-extract-u-pk (1),
 .BR seabrew-abe-print-msk (1),
 .BR seabrew-abe-print-pub (1),

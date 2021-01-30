@@ -10,7 +10,8 @@ Generate a key with the listed attributes using public key PUB_KEY and
 master secret key MASTER_KEY. Output will be written to the file
 "priv_key" unless the \fB\-o\fR option is specified.
 .PP
-Additionally, set the generated key's version to the MASTER_KEY's version.
+Additionally, set the generated key's version to the MASTER_KEY's version
+and generate a ".s" extension file containing the D field.
 .PP
 Attributes come in two forms: non\-numerical and numerical. Non\-numerical
 attributes are simply any string of letters, digits, and underscores
@@ -62,16 +63,15 @@ numerical attribute.
 Report bugs to University of Pisa.
 .SH "SEE ALSO"
 .BR seabrew-abe-setup (1),
-.BR seabrew-abe-keygen (1),
 .BR seabrew-abe-dec (1),
 .BR seabrew-abe-enc (1),
-.BR seabrew-abe-updatemk (1),
-.BR seabrew-abe-updatecp (1),
-.BR seabrew-abe-updatedk (1),
-.BR seabrew-abe-updatepk (1),
-.BR seabrew-abe-extract (1),
-.BR seabrew-abe-extract-u-dk (1),
+.BR seabrew-abe-update-mk (1),
+.BR seabrew-abe-update-cp (1),
+.BR seabrew-abe-update-dk (1),
+.BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-extract-d (1),
 .BR seabrew-abe-extract-u-pk (1),
+.BR seabrew-abe-extract (1),
 .BR seabrew-abe-print-msk (1),
 .BR seabrew-abe-print-pub (1),
 .BR seabrew-abe-print-prv (1),

@@ -10,9 +10,9 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-extract-pk UPD PUB FILE\n"
+"Usage: seabrew-abe-extract-pk [OPTION ...] UPD_KEY PUB_KEY FILE\n"
 "\n"
-"Extract the u_pk field from the latest update key of UPD_KEY.\n"
+"Extract the u_pk field from the latest update key of UPD_KEY\n"
 "and write the result into FILE\n"
 "\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
@@ -74,18 +74,16 @@ main( int argc, char** argv )
 	
 	parse_args(argc, argv);
 	
-	pbc_random_set_deterministic(11);
-	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	upd = seabrew_bswabe_upd_unserialize(pub, suck_file(upd_file), 1);
 	
 	u_pk = extract_u_pk(upd);
-	spit_file(out_file, seabrew_bswabe_u_x_serialize((seabrew_bswabe_u_x_t*)u_pk), 1);
+	spit_file(out_file, seabrew_bswabe_u_pk_serialize(u_pk), 1);
 	
 	seabrew_bswabe_upd_free(upd);
 	free(upd);
 	
-	seabrew_bswabe_u_x_free((seabrew_bswabe_u_x_t*)u_pk);
+	seabrew_bswabe_u_pk_free(u_pk);
 	free(u_pk);
 	
 	seabrew_bswabe_pub_free(pub);

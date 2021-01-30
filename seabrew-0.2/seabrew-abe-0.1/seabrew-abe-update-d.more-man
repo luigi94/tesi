@@ -1,8 +1,16 @@
 [see also]
 .BR seabrew-abe-setup (1),
 .BR seabrew-abe-keygen (1),
-.BR seabrew-abe-enc (1),
 .BR seabrew-abe-dec (1),
-.BR seabrew-abe-updatemk (1),
-.BR seabrew-abe-update-partial-updates (1),
-.BR seabrew-abe-update-pub-and-prv-partial (1)
+.BR seabrew-abe-enc (1),
+.BR seabrew-abe-update-mk (1),
+.BR seabrew-abe-update-dk (1),
+.BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-updated-cp (1),
+.BR seabrew-abe-extract-u-pk (1),
+.BR seabrew-abe-extract (1),
+.BR seabrew-abe-print-msk (1),
+.BR seabrew-abe-print-pub (1),
+.BR seabrew-abe-print-cph (1),
+.BR seabrew-abe-print-prv (1),
+.BR seabrew-abe-print-upd (1)

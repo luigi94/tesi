@@ -143,7 +143,7 @@ seabrew_bswabe_upd_t* seabrew_bswabe_upd_unserialize(seabrew_bswabe_pub_t* pub, 
 	seabrew_bswabe_upd_t* current = NULL;
 	seabrew_bswabe_upd_t* tmp = NULL;
 
-	guint remaining = b->len/(guint)160;
+	guint remaining = b->len/(guint)UPD_LEN;
 	int offset = 0;
 
 	while(TRUE) {
@@ -177,39 +177,32 @@ seabrew_bswabe_upd_t* seabrew_bswabe_upd_unserialize(seabrew_bswabe_pub_t* pub, 
 	return upd;
 }
 
-GByteArray* seabrew_bswabe_u_x_serialize(seabrew_bswabe_u_x_t* u_x ){
+GByteArray* seabrew_bswabe_u_pk_serialize(seabrew_bswabe_u_pk_t* u_pk ){
 	GByteArray* b;
 	b = g_byte_array_new();
 	
-	serialize_uint32(b, u_x->version);
-	serialize_element(b, u_x->u_x);
+	serialize_element(b, u_pk->u_pk);
+	serialize_uint32(b, u_pk->version);
 	
 	return b;
 }
 
-seabrew_bswabe_u_x_t* seabrew_bswabe_u_x_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int group, int free ){
-	seabrew_bswabe_u_x_t* u_x;
+seabrew_bswabe_u_pk_t* seabrew_bswabe_u_pk_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
+	seabrew_bswabe_u_pk_t* u_pk;
 	int offset = 0;
 	
-	if((u_x = (seabrew_bswabe_u_x_t*)malloc(sizeof(seabrew_bswabe_u_x_t))) == NULL){
+	if((u_pk = (seabrew_bswabe_u_pk_t*)malloc(sizeof(seabrew_bswabe_u_pk_t))) == NULL){
 		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		exit(1);
 	}
-	u_x->version = unserialize_uint32(b, &offset);
-	if(group == 0){
-		element_init_Zr(u_x->u_x, pub->pub_f->p);
-	}else if(group == 1){
-		element_init_G1(u_x->u_x, pub->pub_f->p);
-	} else{
-		fprintf(stderr, "Not recognized group for unserialization\n");
-		exit(1);
-	}
-	unserialize_element(b, &offset, u_x->u_x);
+	element_init_G1(u_pk->u_pk, pub->pub_f->p);
+		unserialize_element(b, &offset, u_pk->u_pk);
+	u_pk->version = unserialize_uint32(b, &offset);
 	
 	if( free )
 		g_byte_array_free(b, 1);
 
-	return u_x;
+	return u_pk;
 }
 
 GByteArray* seabrew_bswabe_d_serialize(seabrew_bswabe_d_t* d ){
@@ -274,9 +267,9 @@ void seabrew_bswabe_upd_free(seabrew_bswabe_upd_t* head) {
   }
   free(head);
 }
-void seabrew_bswabe_u_x_free(seabrew_bswabe_u_x_t* u_x){
-	element_clear(u_x->u_x);
-	u_x->version = 0U;
+void seabrew_bswabe_u_pk_free(seabrew_bswabe_u_pk_t* u_pk){
+	element_clear(u_pk->u_pk);
+	u_pk->version = 0U;
 }
 void seabrew_bswabe_d_free(seabrew_bswabe_d_t* d){
 	element_clear(d->d);

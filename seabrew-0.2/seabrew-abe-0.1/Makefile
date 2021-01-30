@@ -21,7 +21,7 @@ LDFLAGS = -O3 -Wall \
 
 DISTNAME = seabrew-abe-0.1
 
-TARGETS  = seabrew-abe-setup seabrew-abe-enc seabrew-abe-keygen seabrew-abe-dec	seabrew-abe-updatemk seabrew-abe-updatepk seabrew-abe-updatecp seabrew-abe-update-d seabrew-abe-print-msk seabrew-abe-print-upd seabrew-abe-print-pub seabrew-abe-print-prv seabrew-abe-print-cph seabrew-abe-extract seabrew-abe-extract-u-pk seabrew-abe-updatedk
+TARGETS  = seabrew-abe-setup seabrew-abe-enc seabrew-abe-keygen seabrew-abe-dec	seabrew-abe-update-mk seabrew-abe-update-pk seabrew-abe-update-dk seabrew-abe-update-cp seabrew-abe-update-d seabrew-abe-print-msk seabrew-abe-print-upd seabrew-abe-print-pub seabrew-abe-print-prv seabrew-abe-print-cph seabrew-abe-extract seabrew-abe-extract-u-pk
 DEVTARGS = test-lang TAGS
 
 MANUALS  = $(TARGETS:=.1)
@@ -43,16 +43,16 @@ seabrew-abe-keygen: seabrew-keygen.o common.o policy_lang.o
 seabrew-abe-dec: seabrew-dec.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
-seabrew-abe-updatemk: seabrew-updatemk.o common.o
+seabrew-abe-update-mk: seabrew-update-mk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
-seabrew-abe-updatepk: seabrew-updatepk.o common.o
+seabrew-abe-update-pk: seabrew-update-pk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
-seabrew-abe-updatedk: seabrew-updatedk.o common.o
+seabrew-abe-update-dk: seabrew-update-dk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
-seabrew-abe-updatecp: seabrew-updatecp.o common.o
+seabrew-abe-update-cp: seabrew-update-cp.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 	
 seabrew-abe-update-d: seabrew-update-d.o common.o

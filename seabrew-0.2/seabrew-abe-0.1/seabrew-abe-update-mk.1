@@ -1,0 +1,53 @@
+.TH SEABREW-ABE-UPDATE-MK "1" "January 2021" "SRI International" "User Commands"
+.SH NAME
+seabrew-abe-update-mk \- manual page for seabrew-abe-update-mk 0.1
+.SH SYNOPSIS
+.B seabrew-abe-update-mk
+[\fIOPTION \fR...] \fI PUB_KEY MSK_KEY UPD_KEY \fR
+.SH DESCRIPTION
+Update the MSK_KEY using the public key PUB_KEY and
+generate an update key UPD_KEY of one version greater than
+MSK_KEY's.
+.PP
+If the UPD_KEY exists and it is validthen the new update
+key will be appended to it, otherwise UPD_KEY will be
+generated from scratch.
+.PP
+The first update key version of UPD_KEY will be, in any case, 1.
+.PP
+Mandatory arguments to long options are mandatory for short options too.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print this message
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print version information
+.TP
+\fB\-d\fR, \fB\-\-deterministic\fR
+use deterministic "random" numbers
+(only for debugging)
+.SH EXAMPLES
+
+Update the master key msk_key and generate a new update key that will be appended to upd_key
+(or upd_key is generated from scratch if it does not exist when this primitive is invoked):
+
+  $ seabrew-abe-update-mk pub_key msk_key upd_key
+
+.SH "REPORTING BUGS"
+Report bugs to University of Pisa.
+.SH "SEE ALSO"
+.BR seabrew-abe-setup (1),
+.BR seabrew-abe-keygen (1),
+.BR seabrew-abe-dec (1),
+.BR seabrew-abe-enc (1),
+.BR seabrew-abe-update-dk (1),
+.BR seabrew-abe-update-cp (1),
+.BR seabrew-abe-update-pk (1),
+.BR seabrew-abe-extract (1),
+.BR seabrew-abe-extract-d (1),
+.BR seabrew-abe-extract-u-pk (1),
+.BR seabrew-abe-print-msk (1),
+.BR seabrew-abe-print-pub (1),
+.BR seabrew-abe-print-cph (1),
+.BR seabrew-abe-print-prv (1),
+.BR seabrew-abe-print-upd (1)

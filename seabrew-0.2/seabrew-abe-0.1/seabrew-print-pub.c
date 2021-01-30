@@ -10,9 +10,9 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-print-pub PUB\n"
+"Usage: seabrew-abe-print-pub [OPTION ...] PUB_KEY\n"
 "\n"
-"Print the master key PUB.\n"
+"Print the public key PUB_KEY.\n"
 "Mandatory arguments to long options are mandatory for short options too.\n\n"
 " -h, --help                    print this message\n\n"
 " -v, --version                 print version information\n\n"
@@ -59,8 +59,6 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 
 	parse_args(argc, argv);
-	
-	pbc_random_set_deterministic(6);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	
