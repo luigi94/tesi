@@ -10,12 +10,12 @@
 #include <errno.h>
 #include <glib.h>
 #include <pbc.h>
+#include <pbc_random.h>
 #include <fcntl.h>
 #include <sys/time.h>
 
-#include "bswabe.h"
+#include "seabrew.h"
 #include "common.h"
-#include "private.h"
 #include "util.h"
 #include "shared.h"
 #include "parameters.h"
@@ -25,13 +25,14 @@
 ssize_t nbytes;
 int socket_fd;
 FILE* f_revocation_times;
-uint32_t last_key_version_sent = 0U; // Actually a database is needed to handle all vehicles' key
+size_t requests;
 
-char* partial_updates_file = "green_vehicle_partial_updates";
-char* ciphertext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.cpabe";
-
-char* partial_updates_ready_file = "partial_updates_ready_file";
-char* ciphertext_ready_file = "ciphertext_ready_file";
+char* d_file = "blue_vehicle_priv_key.d";
+char* d_file_signed = "blue_vehicle_priv_key.d.sgnd";
+char* plaintext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
+char* inner_signed_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd";
+char* ciphertext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd.cpabe";
+char* ciphertext_ready_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd.cpabe.sgnd";
 
 char* msk_file = "master_key";
 char* pub_file = "pub_key";
@@ -43,18 +44,10 @@ char* revocation_times_file_name = "revocation_times.csv";
 typedef struct pthread_arg_t {
     int new_socket_fd;
     struct sockaddr_in client_address;
-    pthread_mutex_t* mutex;
 } pthread_arg_t;
-
-typedef struct ka_arg_t {
-    pthread_mutex_t* mutex;
-    pthread_mutex_t* cond_mutex;
-    pthread_cond_t* wait_cv;
-} ka_arg_t;
 
 /* Thread routine to serve connection to client. */
 void *pthread_routine(void *arg);
-void *key_authority_routine(void *arg);
 
 /* Signal handler to handle SIGTERM and SIGINT signals. */
 void signal_handler();
@@ -91,8 +84,53 @@ void send_data(const int new_socket_fd, const char* const restrict ready_file_na
 	close(fd);
 }
 
-void make_partial_update_buffer_and_sign(const uint8_t type, const char* const restrict partial_updates_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
-  FILE* f_partial_updates;
+void sign_and_encrypt(){
+	unsigned char* buffer;
+	size_t plaintext_len;
+	unsigned char* sgnt_buf;
+	size_t sgnt_len;
+	FILE* f_plaintext;
+	
+	if((f_plaintext = fopen(plaintext_file, "r")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", plaintext_file, strerror(errno));
+		exit(1);
+	}
+	
+	fseek(f_plaintext, 0UL, SEEK_END);
+	plaintext_len = ftell(f_plaintext);
+	rewind(f_plaintext);
+	
+	if((buffer = (unsigned char*)malloc((size_t)(plaintext_len + EXP_SGNT_SIZE))) == NULL){
+		fprintf(stderr, "Error in allocating memory for message total length. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	
+	if(fread((void*)buffer, 1UL, plaintext_len, f_plaintext) < plaintext_len){
+		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", plaintext_file, strerror(errno));
+		exit(1);
+	}
+	fclose(f_plaintext);
+	sign(buffer, plaintext_len, &sgnt_buf, &sgnt_len, prvkey_file_name);
+	
+	if(sgnt_len != (unsigned long) EXP_SGNT_SIZE){
+		fprintf(stderr, "Signature size does not match expected size\n");
+		exit(1);
+	}
+	
+	memcpy((void*)(buffer + plaintext_len), (void*)sgnt_buf, sgnt_len);
+	
+	write_file(buffer, plaintext_len + sgnt_len, inner_signed_file);
+	
+	if(system("seabrew-abe-enc -k pub_key vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd 'ECU_MODEL_2247 or (CAR_MODEL_21 and ECU_MODEL_2248)'") == -1){
+		fprintf(stderr, "Error on system call (0)\n");
+		exit(1);
+	}
+	free(buffer);
+	free(sgnt_buf);
+}
+
+void make_d_buffer_and_sign(const uint8_t type, const char* const restrict d_file, unsigned char* restrict* const restrict buffer, unsigned long* const total_len, char* const restrict prvkey_file_name){
+  FILE* f_d;
   
 	unsigned char* sgnt_buf;
 	unsigned long sgnt_size;
@@ -100,10 +138,10 @@ void make_partial_update_buffer_and_sign(const uint8_t type, const char* const r
 	unsigned long pointer;
 	
 	/*
-	.--------------------------------------------------.
-	| TOTAL LEN |  TYPE  | PARTIAL UPDATES | SIGNATURE |
-	|  8 BYTES  | 1 BYTE |    260 BYTES    | 512 BYTES |
-	'--------------------------------------------------'
+	.--------------------------------------------.
+	| TOTAL LEN |  TYPE  | {v_DK, D} | SIGNATURE |
+	|  8 BYTES  | 1 BYTE | 136 BYTES | 512 BYTES |
+	'--------------------------------------------'
 	*/
 	
 	/* Allocating memory for total len (it will be updated at the end of this function) */
@@ -122,24 +160,22 @@ void make_partial_update_buffer_and_sign(const uint8_t type, const char* const r
 	}
 	memcpy((void*)(*buffer + pointer), (void*)&type, (size_t)TYPE_LEN);
 	
-  /* Adding partial updates */
-	if(partial_updates_file != NULL){
-		if((f_partial_updates = fopen(partial_updates_file, "r")) == NULL){
-			fprintf(stderr, "Error in opening %s. Error: %s\n", partial_updates_file, strerror(errno));
-			exit(1);
-		}
-		pointer = *total_len;
-		*total_len += UPDATES_LEN;
-		if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-			fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
-			exit(1);
-		}
-		if(fread((void*)(*buffer + pointer), 1, UPDATES_LEN, f_partial_updates) < UPDATES_LEN){
-			fprintf(stderr, "Error while reading file '%s'. Error: %s\n", partial_updates_file, strerror(errno));
-			exit(1);
-		}
-		fclose(f_partial_updates);
+  /* Adding D */
+	if((f_d = fopen(d_file, "r")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", d_file, strerror(errno));
+		exit(1);
 	}
+	pointer = *total_len;
+	*total_len += D_LEN;
+	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
+		fprintf(stderr, "Error in realloc(). Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	if(fread((void*)(*buffer + pointer), 1, D_LEN, f_d) < D_LEN){
+		fprintf(stderr, "Error while reading file '%s'. Error: %s\n", d_file, strerror(errno));
+		exit(1);
+	}
+	fclose(f_d);
 	
 	pointer = *total_len;
 	*total_len += (unsigned long) EXP_SGNT_SIZE;
@@ -166,18 +202,17 @@ void make_ciphertext_buffer_and_sign(const uint8_t type, const char* const restr
   FILE* f_ciphertext;
   
   unsigned long ciphertext_len;
-	unsigned long version;
 	unsigned char* sgnt_buf;
 	unsigned long sgnt_size;
 	
 	unsigned long pointer;
 	
 	/*
-	.---------------------------------------------------------.
-	| TOTAL LEN |  VERSION  |  TYPE  | CIPHERTEXT | SIGNATURE |
-	|  8 BYTES  |  8 BYTES  | 1 BYTE |  VARIABLE  | 512 BYTES |
-	|           |           |        |		SIZE    |           |
-	'---------------------------------------------------------'
+	.---------------------------------------------.
+	| TOTAL LEN |  TYPE  | CIPHERTEXT | SIGNATURE |
+	|  8 BYTES  | 1 BYTE |  VARIABLE  | 512 BYTES |
+	|           |        |	 SIZE     |           |
+	'---------------------------------------------'
 	*/
 	
 	/* Allocating memory for total len (it will be updated at the end of this function) */
@@ -195,16 +230,6 @@ void make_ciphertext_buffer_and_sign(const uint8_t type, const char* const restr
 		exit(1);
 	}
 	memcpy((void*)(*buffer + pointer), (void*)&type, (size_t)TYPE_LEN);
-	
-	/* Adding version */
-	version = 0UL;
-	pointer = *total_len;
-	*total_len += (unsigned long)TIMESTAMP_LEN;
-	if((*buffer = (unsigned char*)realloc(*buffer, *total_len)) == NULL){
-		fprintf(stderr, "Error in reallocating memory for timestamp. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	memcpy((void*)(*buffer + pointer), (void*)&version, (size_t)TIMESTAMP_LEN);
   
   /* Adding ciphertext */
 	if((f_ciphertext = fopen(ciphertext_file, "r")) == NULL){
@@ -249,34 +274,6 @@ void make_ciphertext_buffer_and_sign(const uint8_t type, const char* const restr
 	free(sgnt_buf);
 }
 
-void initialize_key_authority_thread(pthread_mutex_t* mutex, pthread_mutex_t* cond_mutex, pthread_cond_t* wait_cv){
-	pthread_attr_t pthread_attr;
-	pthread_t pthread;
-	ka_arg_t *pthread_arg;
-	
-	if ((pthread_arg = (ka_arg_t*)malloc(sizeof(ka_arg_t))) == NULL) {
-		perror("malloc");
-		exit(1);
-	}
-	pthread_arg->mutex = mutex;
-	pthread_arg->cond_mutex = cond_mutex;
-	pthread_arg->wait_cv = wait_cv;
-	
-	if (pthread_attr_init(&pthread_attr) != 0) {
-		perror("pthread_attr_init");
-		exit(1);
-	}
-	if (pthread_attr_setdetachstate(&pthread_attr, PTHREAD_CREATE_DETACHED) != 0) {
-		perror("pthread_attr_setdetachstate");
-		exit(1);
-	}
-	if (pthread_create(&pthread, &pthread_attr, key_authority_routine, (void*)pthread_arg) != 0) {
-		perror("pthread_create");
-		exit(1);
-	}
-}
-
-
 int main(int argc, char *argv[]) {
 	int port, new_socket_fd;
 	struct sockaddr_in address;
@@ -284,33 +281,30 @@ int main(int argc, char *argv[]) {
 	pthread_arg_t *pthread_arg;
 	pthread_t pthread;
 	socklen_t client_address_len;
-	pthread_mutex_t mutex;
-	pthread_mutex_t cond_mutex;
-	pthread_cond_t wait_cv;
-	size_t requests;
-
+	unsigned char* buffer;
+	unsigned long total_len;
+	
+	if(FALSE){
+		pbc_random_set_deterministic(0);
+	}
+	
 	if(argc != 2){
 		fprintf(stderr, "Usage: ./server PORT\n");
 		exit(1);
 	}
+	
+	sign_and_encrypt();
+	make_ciphertext_buffer_and_sign(1, ciphertext_file, &buffer, &total_len, prvkey_file_name);
+	write_file(buffer, total_len, ciphertext_ready_file);
+	free(buffer);
+	
+	if((f_revocation_times = fopen(revocation_times_file_name, "w")) == NULL){
+		fprintf(stderr, "Error in opening %s. Error: %s\n", revocation_times_file_name, strerror(errno));
+		exit(1);
+	}
+	fprintf(f_revocation_times, "Iteration, Revocation\n");
+	
 	port = atoi(argv[1]);
-	
-	if(pthread_mutex_init(&mutex, NULL) != 0){
-		fprintf(stderr, "Error in mutex initialization\n");
-		exit(1);
-	}
-	
-	if(pthread_mutex_init(&cond_mutex, NULL) != 0){
-		fprintf(stderr, "Error in condition mutex initialization\n");
-		exit(1);
-	}
-	
-	if(pthread_cond_init(&wait_cv,  NULL) != 0){
-		fprintf(stderr, "Error in condition variable initialization\n");
-		exit(1);
-	}
-	
-	initialize_key_authority_thread(&mutex, &cond_mutex, &wait_cv);
 
 	/* Initialise IPv4 address. */
 	memset(&address, 0, sizeof address);
@@ -382,15 +376,6 @@ int main(int argc, char *argv[]) {
 
 		/* Initialise pthread argument. */
 		pthread_arg->new_socket_fd = new_socket_fd;
-		pthread_arg->mutex = &mutex;
-		
-		if((requests % REQUESTS) == 0){
-			if(pthread_cond_signal(&wait_cv)){
-				fprintf(stderr, "Error on condition signal. Error: %s\n", strerror(errno));
-				exit(1);
-			}
-		}
-		requests++;
 
 		/* Create thread to serve connection to client. */
 		if (pthread_create(&pthread, &pthread_attr, pthread_routine, (void *)pthread_arg) != 0) {
@@ -398,83 +383,46 @@ int main(int argc, char *argv[]) {
 			free(pthread_arg);
 			continue;
 		}
+		
 	}
 	return 0;
 }
 
 void *pthread_routine(void *arg) {
   int new_socket_fd;
-	pthread_mutex_t* mutex;
-	uint32_t partial_updates_version;
+	struct timeval start;
+	struct timeval end;
+	unsigned char* buffer;
+	size_t total_len;
+
+	if(gettimeofday(&start, NULL) != 0){
+		fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
+		exit(1);
+	}
 	
 	pthread_arg_t *pthread_arg = (pthread_arg_t *)arg;
   new_socket_fd = pthread_arg->new_socket_fd;
-  mutex = pthread_arg->mutex;
   free(arg);
+		
+	requests++;
   
-  pthread_mutex_lock(mutex);
-  partial_updates_version = get_partial_updates_version(partial_updates_file);
-  if(last_key_version_sent < partial_updates_version){
-  	send_data(new_socket_fd, partial_updates_ready_file);
-  	last_key_version_sent = partial_updates_version;
-  }
-	send_data(new_socket_fd, ciphertext_ready_file);
-	
-	pthread_mutex_unlock(mutex); 
-	
-	close_socket(new_socket_fd);
-	
-  return NULL;
-}
-
-void *key_authority_routine(void* arg){
-	ka_arg_t *pthread_arg;
-	pthread_mutex_t* mutex;
-	pthread_mutex_t* cond_mutex;
-	pthread_cond_t* wait_cv;
-	size_t iteration;
-	unsigned char* buffer;
-  unsigned long total_len;
-	bswabe_pub_t* pub;
-	struct timeval start;
-	struct timeval end;
-  
-	pthread_arg = (ka_arg_t*)arg;
-  mutex = pthread_arg->mutex;
-  cond_mutex = pthread_arg->cond_mutex;
-  wait_cv = pthread_arg->wait_cv;
-  free(arg);
-  iteration = 0UL;
-  
-	if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
-		fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
-		exit(1);
-	}
-	pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
-  
-  if((f_revocation_times = fopen(revocation_times_file_name, "w")) == NULL){
-		fprintf(stderr, "Error in opening %s. Error: %s\n", revocation_times_file_name, strerror(errno));
-		exit(1);
-	}
-	
-	fprintf(f_revocation_times, "Iteration, Revocation\n");
-	
-	while(TRUE){
-		pthread_cond_wait(wait_cv, cond_mutex);
-		pthread_mutex_lock(mutex);
-		if(gettimeofday(&start, NULL) != 0){
-			fprintf(stderr, "Error in gettimeofday() [start]. Error: %s\n", strerror(errno));
+	if(((requests - 1UL) % REQUESTS) == 0){
+		if(system("seabrew-abe-update-mk pub_key master_key upd_key") == -1){
+			fprintf(stderr, "Error on system call (1)\n");
 			exit(1);
 		}
-		
-		bswabe_update_mk(pub, msk_file, upd_file);
-		bswabe_update_partial_updates(pub, partial_updates_file, upd_file); //
-		bswabe_update_cp(pub, ciphertext_file, upd_file); //
-		
-		make_partial_update_buffer_and_sign(0, partial_updates_file, &buffer, &total_len, prvkey_file_name);
-		write_file(buffer, total_len, partial_updates_ready_file);
+		if(system("seabrew-abe-update-d blue_vehicle_priv_key.d upd_key pub_key") == -1){
+			fprintf(stderr, "Error on system call (2)\n");
+			exit(1);
+		}
+		make_d_buffer_and_sign(0, d_file, &buffer, &total_len, prvkey_file_name);
+		write_file(buffer, total_len, d_file_signed);
 		free(buffer);
 		
+		if(system("seabrew-abe-update-cp vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd.cpabe upd_key pub_key") == -1){
+			fprintf(stderr, "Error on system call (3)\n");
+			exit(1);
+		}
 		make_ciphertext_buffer_and_sign(1, ciphertext_file, &buffer, &total_len, prvkey_file_name);
 		write_file(buffer, total_len, ciphertext_ready_file);
 		free(buffer);
@@ -483,23 +431,28 @@ void *key_authority_routine(void* arg){
 			fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
 			exit(1);
 		}
-		iteration += 1UL;
-		fprintf(f_revocation_times, "%lu, %lu\n", iteration, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
-		for(size_t i = 1; i < REQUESTS; ++i){
-			iteration += 1UL;
-			fprintf(f_revocation_times, "%lu, %lu\n", iteration, 0UL);
+		fprintf(f_revocation_times, "%lu, %lu\n", requests, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
+		
+		send_data(new_socket_fd, d_file_signed);
+	}else{
+		if(gettimeofday(&end, NULL) != 0){
+			fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
+			exit(1);
 		}
-		pthread_mutex_unlock(mutex);
+		
+		fprintf(f_revocation_times, "%lu, %lu\n", requests, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
 	}
 	
-	fclose(f_revocation_times);
-	free(pub);
+	send_data(new_socket_fd, ciphertext_ready_file);
 	
-	return NULL;
+	close_socket(new_socket_fd);
+	
+  return NULL;
 }
 
 void signal_handler() { // Explicit clean-up
 	fprintf(stdout, " <-- Signal handler invoked\n");
+	fclose(f_revocation_times);
 	close_socket(socket_fd);
   exit(1);
 }

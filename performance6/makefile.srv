@@ -1,0 +1,49 @@
+CC = gcc
+
+COMMON_FLAGS = -O3 -Wall -Wextra
+
+PARAM = -DSECURITY=256
+
+TARGETS = Server/server Client/client
+
+
+util.o: util.c util.h
+	@echo "Compiling util.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
+	
+shared.o: shared.c shared.h
+	@echo "Compiling shared.c"
+	$(CC) -c -o $@ $< $(COMMON_FLAGS)
+
+# ---------- SCENARIO 1 ----------
+
+client.o: client.c shared.h util.h 
+	@echo "Compiling client.c"
+	$(CC) $(PARAM) -c -o $@ $< $(COMMON_FLAGS)
+	
+Client/client: shared.o util.o client.o | Client
+	@echo "Creating client (Scenario 1) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lsocket -lcrypto
+
+server.o: server.c util.h shared.h
+	@echo "Compiling server.c"
+	$(CC) $(PARAM) -c -o $@ $< $(COMMON_FLAGS)
+
+Server/server: shared.o util.o server.o | Server
+	@echo "Creating server (Scenario 1) executable"
+	$(CC) -o $@ $^ $(COMMON_FLAGS) -lsocket -pthread -lcrypto
+	
+all: $(TARGETS)
+
+clean:
+	rm -f *.o
+	if [ -d "Server" ]; then rm -Rf Server; fi
+	if [ -d "Client" ]; then rm -Rf Client; fi
+	if [ -d "Scenario" ]; then rm -Rf Scenario; fi
+	rm -rf Server Client Scenario
+
+Server:
+	mkdir -p $@
+	
+Client:
+	mkdir -p $@

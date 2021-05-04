@@ -14,56 +14,23 @@ cpabe-enc -k pub_key vim-runtime_2%3a8.1.2269-1ubuntu5_all.deb 'ECU_MODEL_2247 o
 openssl genrsa -out cltprvkey.pem 3072
 openssl rsa -pubout -in cltprvkey.pem -out cltpubkey.pem
 
-cp -f srvprvkey.pem Server_1
-cp -f srvprvkey.pem Server_2
-cp -f srvprvkey.pem Server_3
 cp -f srvprvkey.pem Server_4
-cp -f srvpubkey.pem Client_1
-cp -f srvpubkey.pem Client_2
-cp -f srvpubkey.pem Client_3
 cp -f srvpubkey.pem Client_4
 
-cp -f vim-runtime_2%3a8.1.2269-1ubuntu5_all.deb Server_1
-cp -f vim-runtime_2%3a8.1.2269-1ubuntu5_all.deb Server_3
-
-cp -f master_key Server_2
-cp -f master_key Server_3
-
-cp -f pub_key Server_2
-cp -f pub_key Server_3
-cp -f pub_key Client_2
-cp -f pub_key Client_3
-
-cp -f blue_vehicle_priv_key Client_2
 cp -f blue_vehicle_priv_key Client_4
-cp -f green_vehicle_priv_key Client_2
 cp -f green_vehicle_priv_key Client_4
 
-cp -f vim-runtime_2%3a8.1.2269-1ubuntu5_all.deb.cpabe Server_2
 cp -f vim-runtime_2%3a8.1.2269-1ubuntu5_all.deb.cpabe Server_4
-		
-cp -f cltpubkey.pem Server_3
-cp -f cltprvkey.pem Client_3
-
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
-cpabe-updatemk pub_key master_key upd_key
 
 cp -f master_key Server_4
 cp -f pub_key Server_4
 cp -f pub_key Client_4
-cp -f blue_vehicle_partial_updates Server_4
-cp -f green_vehicle_partial_updates Server_4
-cp -f upd_key Server_4
 
 rm -f cltprvkey.pem
 rm -f cltpubkey.pem
 rm -f blue_vehicle_priv_key
 rm -f green_vehicle_priv_key
 rm -f master_key
-rm -f blue_vehicle_partial_updates
-rm -f green_vehicle_partial_updates
 rm -f pub_key
 rm -f srvprvkey.pem
 rm -rf srvpubkey.pem

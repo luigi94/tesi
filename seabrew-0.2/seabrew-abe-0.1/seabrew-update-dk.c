@@ -83,6 +83,8 @@ main( int argc, char** argv )
 	
 	seabrew_bswabe_update_dk(prv_file, d);
 	
+	unlink(d_file);
+	
 	seabrew_bswabe_d_free(d);
 	free(d);
 	

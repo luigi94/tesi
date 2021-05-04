@@ -21,7 +21,7 @@ LDFLAGS = @LDFLAGS@ \
 
 DISTNAME = @PACKAGE_TARNAME@-@PACKAGE_VERSION@
 
-TARGETS  = seabrew-abe-setup seabrew-abe-enc seabrew-abe-keygen seabrew-abe-dec	seabrew-abe-updatemk seabrew-abe-updatecp seabrew-abe-update-partial-updates seabrew-abe-update-pub-and-prv-partial
+TARGETS  = seabrew-abe-setup seabrew-abe-enc seabrew-abe-keygen seabrew-abe-dec	seabrew-abe-updatemk seabrew-abe-updatepk seabrew-abe-updatecp seabrew-abe-update-partial-updates seabrew-abe-update-pub-and-prv-partial seabrew-abe-print-msk seabrew-abe-print-upd seabrew-abe-print-pub seabrew-abe-print-prv seabrew-abe-print-cph seabrew-abe-extract seabrew-abe-extract-u-cp seabrew-abe-extract-u-dk seabrew-abe-extract-u-pk seabrew-abe-updatedk
 DEVTARGS = test-lang TAGS
 
 MANUALS  = $(TARGETS:=.1)
@@ -45,14 +45,47 @@ seabrew-abe-dec: seabrew-dec.o common.o
 	
 seabrew-abe-updatemk: seabrew-updatemk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-updatepk: seabrew-updatepk.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 seabrew-abe-updatecp: seabrew-updatecp.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-updatedk: seabrew-updatedk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 seabrew-abe-update-partial-updates: seabrew-update-partial-updates.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 seabrew-abe-update-pub-and-prv-partial: seabrew-update-pub-and-prv-partial.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-print-msk: seabrew-print-msk.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-print-upd: seabrew-print-upd.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+seabrew-abe-print-pub: seabrew-print-pub.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-print-prv: seabrew-print-prv.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-print-cph: seabrew-print-cph.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-extract: seabrew-extract.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-extract-u-cp: seabrew-extract-u-cp.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+	
+seabrew-abe-extract-u-dk: seabrew-extract-u-dk.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+seabrew-abe-extract-u-pk: seabrew-extract-u-pk.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 test-lang: test-lang.o common.o policy_lang.o

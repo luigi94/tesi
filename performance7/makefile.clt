@@ -1,0 +1,18 @@
+CC = gcc
+CFLAGS += -O3 -Wall -Wextra -Wredundant-decls -Wvla -Wpointer-arith -O3 -fomit-frame-pointer
+SOURCES = codec.c common.c fft.c fpr.c keygen.c nist.c rng.c shake.c sign.c vrfy.c katrng.c
+HEADERS = api.h fpr.h inner.h katrng.h
+PARAM = -DFALCON_MODE=5
+all: Client/client
+	  
+Client/client: client.c shared.c $(SOURCES) $(HEADERS) | Client
+	@echo "Creating Client executable"
+	$(CC) $(CFLAGS) $(PARAM) -o $@ $< shared.c -lcrypto -lsocket $(SOURCES)
+		
+clean:
+	if [ -d "Client" ]; then rm -Rf Client; fi
+	rm -f *.o
+	
+Client:
+	mkdir -p $@
+

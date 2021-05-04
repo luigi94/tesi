@@ -7,11 +7,11 @@
 #include <errno.h>	
 #include <glib.h>
 #include <pbc.h>
+#include <pbc_random.h>
 #include <sys/time.h>
 
-#include "bswabe.h"
+#include "seabrew.h"
 #include "common.h"
-#include "private.h"
 
 #include "util.h"
 #include "shared.h"
@@ -20,9 +20,12 @@
 ssize_t nbytes;
 int socket_fd;	
 
-char* cleartext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
+char* received_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd.cpabe.sgnd";
+char* ciphertext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb.sgnd.cpabe";
+char* plaintext_file = "vim-runtime_2\%3a8.1.2269-1ubuntu5_all.deb";
 char* pub_file = "pub_key";
-char* prv_file = "green_vehicle_priv_key";
+char* prv_file = "blue_vehicle_priv_key";
+char* d_file = "blue_vehicle_priv_key.d";
 char* pubkey_file_name = "srvpubkey.pem";
 char* results_file_name = "Scenario_4.csv";
 
@@ -30,6 +33,7 @@ void recv_data(unsigned char* restrict* const restrict data_buf, const unsigned 
 	unsigned long remaining_data;
 	unsigned long pointer;
 	size_t count;
+	ssize_t nbytes;
 	
 	remaining_data = (unsigned long)LENGTH_FIELD_LEN;
 	pointer = 0UL;
@@ -77,15 +81,44 @@ void recv_data(unsigned char* restrict* const restrict data_buf, const unsigned 
 	}
 }
 
-void check_freshness(const unsigned long old_version, const unsigned long version){
-	if(old_version != version){
-		fprintf(stderr, "Received outdated data\n");
-		close_socket(socket_fd);
-		exit(1);
-	}
-}
 
 void signal_handler();
+
+void read_cp_from_buffer(unsigned char* cp, GByteArray** cph_buf, int* file_len, GByteArray** aes_buf ){
+	int i;
+	int len;
+	int pointer;
+
+	*cph_buf = g_byte_array_new();
+	*aes_buf = g_byte_array_new();
+	pointer = 0;
+
+	/* read real file len as 32-bit big endian int */
+	*file_len = 0;
+	for( i = 3; i >= 0; i-- ){
+		*file_len |= cp[pointer]<<(i*8);
+		pointer++;
+	}
+
+	/* read aes buf */
+	len = 0;
+	for( i = 3; i >= 0; i-- ){
+		len |= cp[pointer]<<(i*8);
+		pointer++;
+	}
+	g_byte_array_set_size(*aes_buf, len);
+	memcpy((*aes_buf)->data, (void*)(cp + pointer), (size_t)len);
+	pointer += len;
+
+	/* read cph buf */
+	len = 0;
+	for( i = 3; i >= 0; i-- ){
+		len |= cp[pointer]<<(i*8);
+		pointer++;
+	}
+	g_byte_array_set_size(*cph_buf, len);
+	memcpy((*cph_buf)->data, (void*)(cp + pointer), (size_t)len);
+}
 
 int main(int argc, char *argv[]) {
 	char server_name[SERVER_NAME_LEN_MAX + 1] = { 0 };
@@ -94,24 +127,36 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in server_address;
 	
 	unsigned char* data_buf;
-	unsigned char* ciphertext_buf;
-	unsigned char* partial_updates_buf;
 	unsigned long data_size;
-	unsigned long ciphertext_size;
-	unsigned long partial_updates_size;
+	
+	unsigned char* d_buf;
+	unsigned long d_size;
 	
 	uint8_t type;
-	bswabe_pub_t* pub;
 	
 	unsigned long pointer;
-
-	unsigned long ciphertext_version;
-	unsigned long old_ciphertext_version = 0UL;
 	
 	size_t iteration;
 	struct timeval start;
 	struct timeval end;
 	FILE* f_results;
+	
+	seabrew_bswabe_pub_t* pub;
+	seabrew_bswabe_cph_t* cph;
+	seabrew_bswabe_prv_t* prv;
+	
+	GByteArray* aes_buf;
+	GByteArray* plt;
+	GByteArray* cph_buf;
+	int file_len;
+	unsigned long plt_len;
+	element_t m;
+		
+	seabrew_bswabe_d_t* d;
+	
+	if(FALSE){
+		pbc_random_set_deterministic(0);
+	}
 
 	if (argc != 3) {
 		fprintf(stderr, "USAGE: ./client server_address port_number\n");
@@ -160,31 +205,47 @@ int main(int argc, char *argv[]) {
 		}
 		
 		recv_data(&data_buf, &data_size);
+		
 		verify(data_buf, &data_size, pubkey_file_name);
 		
 		pointer = (unsigned long) LENGTH_FIELD_LEN;
 		
-		/* Get response type */
+		// Get response type
 		memcpy((void*)&type, (void*)(data_buf + pointer), (size_t)TYPE_LEN);
 		pointer += (unsigned long) TYPE_LEN;
 		
+		pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
+		
 		if(type == 0){
-			partial_updates_size = data_size - pointer;
-			if((partial_updates_buf = (unsigned char*)malloc(partial_updates_size)) == NULL){
+			d_size = data_size - pointer;
+			if((d_buf = (unsigned char*)malloc(d_size)) == NULL){
 				fprintf(stderr, "Error in allocating memory for the partial updates buffer. Error: %s\n", strerror(errno));
 				close_socket(socket_fd);
 				exit(1);
 			}
-			memcpy((void*)partial_updates_buf, (void*)(data_buf + pointer), partial_updates_size);
+			
+			memcpy((void*)d_buf, (void*)(data_buf + pointer), (size_t)d_size);
 			free(data_buf);
-			bswabe_update_pub_and_prv_keys_partial(partial_updates_buf, pub_file, prv_file);
-			free(partial_updates_buf);
+			write_file(d_buf, d_size, d_file);
+			free(d_buf);
+			
+			if((d = (seabrew_bswabe_d_t*)malloc(sizeof(seabrew_bswabe_d_t))) == NULL ){
+				fprintf(stderr, "Erro in allocating memory for D\n");
+				exit(1);
+			}
+			
+			d = seabrew_bswabe_d_unserialize(pub, suck_file(d_file), 1);
+			
+			seabrew_bswabe_update_dk(prv_file, d);
+			
+			seabrew_bswabe_d_free(d);
+			free(d);
 			
 			recv_data(&data_buf, &data_size);
 			verify(data_buf, &data_size, pubkey_file_name);
 			pointer = (unsigned long) LENGTH_FIELD_LEN;
 			
-			/* Get response type */
+			// Get response type
 			memcpy((void*)&type, (void*)(data_buf + pointer), (size_t)TYPE_LEN);
 			pointer += (unsigned long) TYPE_LEN;
 			if(type != 1){
@@ -197,31 +258,35 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		
-		/* Get version and check freshness */
-		memcpy((void*)&ciphertext_version, (void*)(data_buf + pointer), (size_t)TIMESTAMP_LEN);
-		check_freshness(old_ciphertext_version, ciphertext_version);
-		pointer += (unsigned long) TIMESTAMP_LEN;
+		prv = seabrew_bswabe_prv_unserialize(pub, suck_file(prv_file), 1);
 		
-		ciphertext_size = data_size - pointer;
-		if((ciphertext_buf = (unsigned char*)malloc(ciphertext_size)) == NULL){
-			fprintf(stderr, "Error in allocating memory for the ciphertext buffer. Error: %s\n", strerror(errno));
-			close_socket(socket_fd);
-			exit(1);
-		}
-		memcpy((void*)ciphertext_buf, (void*)(data_buf + pointer), ciphertext_size);
-		
+		read_cp_from_buffer(data_buf + pointer, &cph_buf, &file_len, &aes_buf);
 		free(data_buf);
 		
-		if((pub = (bswabe_pub_t*)malloc(sizeof(bswabe_pub_t))) == NULL){
-			fprintf(stderr, "Error in allocating memory for public key. Error: %s\n", strerror(errno));
-			close_socket(socket_fd);
-			exit(1);
-		}
-		pub = bswabe_pub_unserialize(suck_file(pub_file), 1);
+		cph = seabrew_bswabe_cph_unserialize(pub, cph_buf, 1);
 		
-		if(!bswabe_dec(pub, prv_file, cleartext_file, ciphertext_buf))
+		if( !seabrew_bswabe_dec(pub, prv, cph, m) )
 			die("%s", bswabe_error());
+		seabrew_bswabe_cph_free(cph);
+		free(cph);
+
+		plt = aes_128_cbc_decrypt(aes_buf, m);
+		g_byte_array_set_size(plt, file_len);
+		g_byte_array_free(aes_buf, 1);
+		
+		plt_len = (unsigned long)plt->len;
+		verify(plt->data, &plt_len, pubkey_file_name);
+		write_file(plt->data, plt_len, plaintext_file);
+		g_byte_array_free(plt, 1);
 			
+		element_clear(m);
+		
+		seabrew_bswabe_prv_free(prv);
+		free(prv);
+		
+		seabrew_bswabe_pub_free(pub);
+		free(pub);
+		
 		if(gettimeofday(&end, NULL) != 0){
 			fprintf(stderr, "Error in gettimeofday() [end]. Error: %s\n", strerror(errno));
 			exit(1);
@@ -229,8 +294,6 @@ int main(int argc, char *argv[]) {
 		fprintf(f_results, "%lu, %lu\n", iteration + 1UL, (unsigned long) ((end.tv_sec - start.tv_sec) * 1000000 + end.tv_usec - start.tv_usec));
 		
 		close_socket(socket_fd);
-		free(ciphertext_buf);
-		free(pub);
 	}
 	
 	fclose(f_results);

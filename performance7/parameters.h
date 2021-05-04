@@ -1,0 +1,6 @@
+#define SERVER_NAME_LEN_MAX 255
+#define MAX_BUF 1<<18
+#define TIMESTAMP_LEN 8
+#define LENGTH_FIELD_LEN 8
+
+#define ITERATIONS 20

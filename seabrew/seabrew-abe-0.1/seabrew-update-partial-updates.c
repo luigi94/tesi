@@ -70,6 +70,7 @@ main( int argc, char** argv )
 	seabrew_bswabe_pub_t* pub;
 	
 	parse_args(argc, argv);
+	pbc_random_set_deterministic(13);
 	
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 	

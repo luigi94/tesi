@@ -218,19 +218,19 @@ GByteArray* seabrew_bswabe_d_serialize(seabrew_bswabe_d_t* d ){
 seabrew_bswabe_d_t* seabrew_bswabe_d_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
 	seabrew_bswabe_d_t* d;
 	int offset = 0;
-	
 	if((d = (seabrew_bswabe_d_t*)malloc(sizeof(seabrew_bswabe_d_t))) == NULL){
 		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
 		exit(1);
 	}
 	element_init_G2(d->d, pub->pub_f->p);
+	
 	unserialize_element(b, &offset, d->d);
-	
+
 	d->version = unserialize_uint32(b, &offset);
-	
+
 	if( free )
 		g_byte_array_free(b, 1);
-
+		
 	return d;
 }
 

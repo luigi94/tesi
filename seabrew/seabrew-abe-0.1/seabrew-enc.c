@@ -102,6 +102,7 @@ main( int argc, char** argv )
 	element_t m;
 
 	parse_args(argc, argv);
+	pbc_random_set_deterministic(3998);
 
 	pub = seabrew_bswabe_pub_unserialize(suck_file(pub_file), 1);
 

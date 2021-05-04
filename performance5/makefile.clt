@@ -1,0 +1,27 @@
+CC = gcc
+CFLAGS += -O3 -Wall -Wextra -Wredundant-decls -Wvla -Wpointer-arith -O3 -fomit-frame-pointer
+SOURCES = sign.c packing.c polyvec.c poly.c ntt.c reduce.c rounding.c
+HEADERS = config.h params.h api.h sign.h packing.h polyvec.h poly.h ntt.h reduce.h rounding.h symmetric.h randombytes.h
+KECCAK_SOURCES = $(SOURCES) fips202.c symmetric-shake.c
+KECCAK_HEADERS = $(HEADERS) fips202.h
+AES_SOURCES = $(SOURCES) fips202.c aes256ctr.c symmetric-aes.c
+AES_HEADERS = $(HEADERS) fips202.h aes256ctr.h
+PARAM = -DDILITHIUM_MODE=2 -DDILITHIUM_USE_AES
+
+all: test_dilithium Client/client
+
+test_dilithium: test_dilithium.c randombytes.c $(AES_SOURCES) $(AES_HEADERS)
+	$(CC) $(CFLAGS) $(PARAM) -o $@ $< randombytes.c $(AES_SOURCES)
+	  
+Client/client: client.c randombytes.c shared.c util.c $(AES_SOURCES) $(AES_HEADERS) | Client
+	@echo "Creating client executable"
+	$(CC) $(CFLAGS) $(PARAM) -o $@ $< randombytes.c shared.c util.c -lcrypto -lsocket $(AES_SOURCES)
+
+clean:
+	if [ -d "Client" ]; then rm -Rf Client; fi
+	rm -f test_dilithium
+	rm -f *.o
+	
+Client:
+	mkdir -p $@
+

@@ -32,7 +32,7 @@ char* usage =
 char*  pub_file = 0;
 char*  msk_file = 0;
 char*  upd_file = 0;
-
+unsigned seed = 0;
 void
 parse_args( int argc, char** argv )
 {
@@ -52,6 +52,13 @@ parse_args( int argc, char** argv )
 		else if( !strcmp(argv[i], "-d") || !strcmp(argv[i], "--deterministic") )
 		{
 			pbc_random_set_deterministic(0);
+		}
+		else if( !strcmp(argv[i], "-s") || !strcmp(argv[i], "--seed") )
+		{
+			if( ++i >= argc )
+				die(usage);
+			else
+				pbc_random_set_deterministic((unsigned)atoi(argv[i]));
 		}
 		else if( !pub_file )
 		{

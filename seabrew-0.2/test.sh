@@ -14,28 +14,20 @@ seabrew-abe-keygen -o kevin_priv_key pub_key master_key \
     business_staff strategy_team 'executive_level = 7' \
     'office = 2362'
 
-seabrew-abe-update-mk pub_key master_key upd_key 
-seabrew-abe-update-mk pub_key master_key upd_key 
-seabrew-abe-update-mk pub_key master_key upd_key 
-seabrew-abe-update-mk pub_key master_key upd_key 
-seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
 
-seabrew-abe-update-mk pub_key master_key upd_key
-seabrew-abe-update-mk pub_key master_key upd_key 
-seabrew-abe-update-mk pub_key master_key upd_key 
 seabrew-abe-update-mk pub_key master_key upd_key 
 seabrew-abe-update-cp to_send.pdf.cpabe upd_key pub_key
+seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
 
-seabrew-abe-update-mk pub_key master_key upd_key
-
-
+seabrew-abe-update-mk pub_key master_key upd_key 
+seabrew-abe-update-cp to_send.pdf.cpabe upd_key pub_key
+seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
 
 seabrew-abe-update-mk pub_key master_key upd_key 
 seabrew-abe-update-d kevin_priv_key.d upd_key pub_key
-
 seabrew-abe-update-cp to_send.pdf.cpabe upd_key pub_key
+
 seabrew-abe-update-dk kevin_priv_key kevin_priv_key.d pub_key
-
 seabrew-abe-dec -k pub_key kevin_priv_key to_send.pdf.cpabe -o decrypted.pdf
 
 openssl md5 to_send.pdf

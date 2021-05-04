@@ -613,7 +613,6 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 	
 	tmp = upd;
 	old_version = tmp->v_uk;
-	tmp = tmp->next;
 	if(start > end && start != 0 && end != 0){
 		fprintf(stderr, "Error in versions interval\n");
 		exit(1);
@@ -622,21 +621,24 @@ seabrew_bswabe_upd_t* extract(seabrew_bswabe_upd_t* upd, uint32_t start, uint32_
 		fprintf(stderr, "Error in versions interval\n");
 		exit(1);
 	}
-	while(tmp && tmp->next){
+	if(tmp->next){
+		tmp = tmp->next;
+		while(tmp && tmp->next){
+			if(old_version != tmp->v_uk - 1U){
+				fprintf(stderr, "Update key inconsistent\n");
+				exit(1);
+			}
+			old_version = tmp->v_uk;
+			tmp = tmp->next;
+		}
 		if(old_version != tmp->v_uk - 1U){
 			fprintf(stderr, "Update key inconsistent\n");
 			exit(1);
 		}
-		old_version = tmp->v_uk;
-		tmp = tmp->next;
-	}
-	if(old_version != tmp->v_uk - 1U){
-		fprintf(stderr, "Update key inconsistent\n");
-		exit(1);
-	}
-	if(start > tmp->v_uk || end > tmp->v_uk ){
-		fprintf(stderr, "Error in versions interval\n");
-		exit(1);
+		if(start > tmp->v_uk || end > tmp->v_uk ){
+			fprintf(stderr, "Error in versions interval\n");
+			exit(1);
+		}
 	}
 	if(start == 0 && end == 0)
 		return tmp;

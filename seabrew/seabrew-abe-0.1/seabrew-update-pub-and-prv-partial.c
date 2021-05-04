@@ -69,6 +69,7 @@ main( int argc, char** argv )
 {
 	
 	parse_args(argc, argv);
+	pbc_random_set_deterministic(15);
 	
 	seabrew_bswabe_update_pub_and_prv_keys_partial(partial_updates, pub_file, prv_file);
 	

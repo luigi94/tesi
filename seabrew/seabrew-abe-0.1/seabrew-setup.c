@@ -78,6 +78,7 @@ main( int argc, char** argv )
 	seabrew_bswabe_msk_t* msk;
 
 	parse_args(argc, argv);
+	pbc_random_set_deterministic(2324);
 
 	seabrew_bswabe_setup(&pub, &msk);
 	

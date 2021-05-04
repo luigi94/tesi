@@ -78,6 +78,8 @@ main( int argc, char** argv )
 	
 	seabrew_bswabe_update_pk(pub_file, u_pk);
 	
+	unlink(u_pk_file);
+	
 	seabrew_bswabe_u_pk_free(u_pk);
 	free(u_pk);
 	

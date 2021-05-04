@@ -160,6 +160,91 @@ GByteArray* seabrew_bswabe_partial_updates_serialize(seabrew_bswabe_partial_upda
 	return b;
 }
 
+seabrew_bswabe_upd_t* seabrew_bswabe_upd_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
+
+	seabrew_bswabe_upd_t* upd = NULL;
+	seabrew_bswabe_upd_t* current = NULL;
+	seabrew_bswabe_upd_t* tmp = NULL;
+
+	guint remaining = b->len/(guint)160;
+	int offset = 0;
+
+	while(TRUE) {
+			if((tmp = (seabrew_bswabe_upd_t*) malloc(sizeof(seabrew_bswabe_upd_t))) == NULL){
+				fprintf(stderr, "Error in allocating memory for update key. Error: %s\n", strerror(errno));
+				exit(1);
+			}
+			
+			element_init_Zr(tmp->u_cp, &(*pub->pub_f->p));
+			element_init_G1(tmp->u_pk, &(*pub->pub_f->p));
+			unserialize_element(b, &offset, tmp->u_cp);
+			unserialize_element(b, &offset, tmp->u_pk);
+			tmp->v_uk = unserialize_uint32(b, &offset);
+			
+		  if (current == NULL){
+		      current = tmp;
+		      current->next = NULL;
+		      upd = current;
+		  } else{
+		      current->next = tmp;
+		      current = tmp;
+		  }
+		  tmp->next = NULL;
+			remaining--;
+			if(remaining == 0)
+				break;
+	}
+	if( free )
+		g_byte_array_free(b, 1);
+
+	return upd;
+}
+
+GByteArray* seabrew_bswabe_u_cp_serialize(seabrew_bswabe_u_cp_t* u_cp ){
+	GByteArray* b;
+	b = g_byte_array_new();
+	
+	serialize_uint32(b, u_cp->version);
+	serialize_element(b, u_cp->u_cp);
+	
+	return b;
+}
+
+seabrew_bswabe_u_cp_t* seabrew_bswabe_u_cp_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
+	seabrew_bswabe_u_cp_t* u_cp;
+	int offset = 0;
+	
+	if((u_cp = (seabrew_bswabe_u_cp_t*)malloc(sizeof(seabrew_bswabe_u_cp_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	u_cp->version = unserialize_uint32(b, &offset);
+	element_init_Zr(u_cp->u_cp, pub->pub_f->p);
+	unserialize_element(b, &offset, u_cp->u_cp);
+	
+	if( free )
+		g_byte_array_free(b, 1);
+
+	return u_cp;
+}
+seabrew_bswabe_u_pk_t* seabrew_bswabe_u_pk_unserialize(seabrew_bswabe_pub_t* pub, GByteArray* b, int free ){
+	seabrew_bswabe_u_pk_t* u_pk;
+	int offset = 0;
+	
+	if((u_pk = (seabrew_bswabe_u_pk_t*)malloc(sizeof(seabrew_bswabe_u_pk_t))) == NULL){
+		fprintf(stderr, "Error in allocating memory. Error: %s\n", strerror(errno));
+		exit(1);
+	}
+	u_pk->version = unserialize_uint32(b, &offset);
+	element_init_G1(u_pk->u_pk, pub->pub_f->p);
+	unserialize_element(b, &offset, u_pk->u_pk);
+	
+	if( free )
+		g_byte_array_free(b, 1);
+
+	return u_pk;
+}
+
 void seabrew_bswabe_pub_free(seabrew_bswabe_pub_t* pub){
 	bswabe_pub_free(pub->pub_f);
 	pub->version = 0U;
@@ -180,11 +265,19 @@ void seabrew_bswabe_cph_free(seabrew_bswabe_cph_t* cph){
 	cph->version = 0U;
 }
 
-void seabrew_bswabe_upd_free( seabrew_bswabe_upd_t* upd ){
-	while(upd != NULL){
-		element_clear(upd->u_cp);
-		element_clear(upd->u_pk);
-		upd->v_uk = 0;
-		upd = upd->next;
+void seabrew_bswabe_upd_free(seabrew_bswabe_upd_t* head) {
+	if(head == NULL){
+		fprintf(stderr, "UPD not initilized yet\n");
+		return;
 	}
+	while ( head != NULL) {
+		element_clear(head->u_cp);
+		element_clear(head->u_pk);
+		head = head->next;
+  }
+  free(head);
+}
+void seabrew_bswabe_u_cp_free(seabrew_bswabe_u_cp_t* u_cp){
+	element_clear(u_cp->u_cp);
+	u_cp->version = 0U;
 }

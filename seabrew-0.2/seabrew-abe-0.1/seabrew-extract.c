@@ -10,7 +10,7 @@
 #include "seabrew.h"
 
 char* usage =
-"Usage: seabrew-abe-extract [OPTION ...] UPD PUB -o FILE [-s START] [-e END]\n"
+"Usage: seabrew-abe-extract [OPTION ...] UPD PUB FILE [-s START] [-e END]\n"
 "\n"
 "Extract the update key(s) from version START to version END.\n"
 "If neither START nor END are passed, only the last update key\n"
@@ -28,7 +28,6 @@ char* usage =
 " -v, --version                 print version information\n\n"
 " -d, --deterministic           use deterministic \"random\" numbers\n"
 "                               (only for debugging)\n\n"
-" -o, --output                  write the extracte update key(s) to FILE\n\n"
 " -s, --start                   the version from which extraction starts\n\n"
 " -e, --end                     the version at which extraction ends\n\n"
 "";

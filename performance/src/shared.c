@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <netinet/tcp.h>
+#include <sys/sendfile.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>

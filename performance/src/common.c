@@ -101,6 +101,30 @@ aes_128_cbc_decrypt( GByteArray* ct, element_t k )
 }
 
 FILE*
+fopen_append_or_die( char* file )
+{
+	FILE* f;
+
+	if( !(f = fopen(file, "a")) )
+		die("can't append file: %s\n", file);
+
+	return f;
+}
+
+void
+update_file( char* file, GByteArray* b, int free )
+{
+	FILE* f;
+
+	f = fopen_append_or_die(file);
+	fwrite(b->data, 1, b->len, f);
+	fclose(f);
+
+	if( free )
+		g_byte_array_free(b, 1);
+}
+
+FILE*
 fopen_read_or_die( char* file )
 {
 	FILE* f;
@@ -118,17 +142,6 @@ fopen_write_or_die( char* file )
 
 	if( !(f = fopen(file, "w")) )
 		die("can't write file: %s\n", file);
-
-	return f;
-}
-
-FILE*
-fopen_append_or_die( char* file )
-{
-	FILE* f;
-
-	if( !(f = fopen(file, "a")) )
-		die("can't append file: %s\n", file);
 
 	return f;
 }
@@ -197,19 +210,6 @@ spit_file( char* file, GByteArray* b, int free )
 		g_byte_array_free(b, 1);
 }
 
-void
-update_file( char* file, GByteArray* b, int free )
-{
-	FILE* f;
-
-	f = fopen_append_or_die(file);
-	fwrite(b->data, 1, b->len, f);
-	fclose(f);
-
-	if( free )
-		g_byte_array_free(b, 1);
-}
-
 void read_cpabe_file( char* file,    GByteArray** cph_buf,
 											int* file_len, GByteArray** aes_buf )
 {
@@ -233,6 +233,7 @@ void read_cpabe_file( char* file,    GByteArray** cph_buf,
 		len |= fgetc(f)<<(i*8);
 	g_byte_array_set_size(*aes_buf, len);
 	fread((*aes_buf)->data, 1, len, f);
+
 	/* read cph buf */
 	len = 0;
 	for( i = 3; i >= 0; i-- )
@@ -243,35 +244,6 @@ void read_cpabe_file( char* file,    GByteArray** cph_buf,
 	fclose(f);
 }
 
-void read_cpabe_file_from_buffer(GByteArray** cph_buf,
-											int* file_len, GByteArray** aes_buf, unsigned char* file_buffer )
-{
-	uint32_t len;
-
-	*cph_buf = g_byte_array_new();
-	*aes_buf = g_byte_array_new();
-
-	/* read real file len as 32-bit big endian int */
-	*file_len = 0U;
-	*file_len = (int)(file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
-	file_buffer += 4UL;
-	
-	/* read aes buf */
-	len = 0U;
-	len = (file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
-	file_buffer += 4UL;
-	g_byte_array_set_size(*aes_buf, len);
-	memcpy((*aes_buf)->data, file_buffer, len);
-	file_buffer += (unsigned long) len;
-	
-	/* read cph buf */
-	len = 0U;
-	len = (file_buffer[0] << 24 | file_buffer[1] << 16 | file_buffer[2] << 8 | file_buffer[3]);
-	file_buffer += 4UL;
-	g_byte_array_set_size(*cph_buf, len);
-	memcpy((*cph_buf)->data, file_buffer, len);
-}
-
 void
 write_cpabe_file( char* file,   GByteArray* cph_buf,
 									int file_len, GByteArray* aes_buf )
@@ -280,17 +252,19 @@ write_cpabe_file( char* file,   GByteArray* cph_buf,
 	int i;
 
 	f = fopen_write_or_die(file);
+
 	/* write real file len as 32-bit big endian int */
 	for( i = 3; i >= 0; i-- )
 		fputc((file_len & 0xff<<(i*8))>>(i*8), f);
+
 	/* write aes_buf */
 	for( i = 3; i >= 0; i-- )
 		fputc((aes_buf->len & 0xff<<(i*8))>>(i*8), f);
 	fwrite(aes_buf->data, 1, aes_buf->len, f);
+
 	/* write cph_buf */
 	for( i = 3; i >= 0; i-- )
 		fputc((cph_buf->len & 0xff<<(i*8))>>(i*8), f);
-		
 	fwrite(cph_buf->data, 1, cph_buf->len, f);
 
 	fclose(f);
