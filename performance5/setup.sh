@@ -28,7 +28,6 @@ sshpass -p 'root' rsync -au poly.h root@192.168.1.200:/root/Documents/tesi/perfo
 sshpass -p 'root' rsync -au poly.c root@192.168.1.200:/root/Documents/tesi/performance5
 sshpass -p 'root' rsync -au polyvec.h root@192.168.1.200:/root/Documents/tesi/performance5
 sshpass -p 'root' rsync -au polyvec.c root@192.168.1.200:/root/Documents/tesi/performance5
-sshpass -p 'root' rsync -au PQCgenKAT_sign.c root@192.168.1.200:/root/Documents/tesi/performance5
 sshpass -p 'root' rsync -au randombytes.h root@192.168.1.200:/root/Documents/tesi/performance5
 sshpass -p 'root' rsync -au randombytes.c root@192.168.1.200:/root/Documents/tesi/performance5
 sshpass -p 'root' rsync -au reduce.c root@192.168.1.200:/root/Documents/tesi/performance5

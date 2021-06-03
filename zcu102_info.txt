@@ -1,0 +1,96 @@
+root@ubuntu:~# lsb_release -idrc
+Distributor ID:	Ubuntu
+Description:	Ubuntu 20.04.1 LTS
+Release:	20.04
+Codename:	focal
+
+root@ubuntu:~# lscpu
+Architecture:        aarch64
+CPU op-mode(s):      32-bit, 64-bit
+Byte Order:          Little Endian
+CPU(s):              3
+On-line CPU(s) list: 0-2
+Thread(s) per core:  1
+Core(s) per socket:  3
+Socket(s):           1
+Vendor ID:           ARM
+Model:               4
+Model name:          Cortex-A53
+Stepping:            r0p4
+CPU max MHz:         1199.9990
+CPU min MHz:         299.9990
+BogoMIPS:            199.98
+Flags:               fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+
+root@ubuntu:~# lshw
+ubuntu                      
+    description: Computer
+    product: ZynqMP ZCU102 Rev1.0
+    width: 64 bits
+    capabilities: smp
+  *-core
+       description: Motherboard
+       physical id: 0
+     *-cpu:0
+          description: CPU
+          product: cpu
+          physical id: 0
+          bus info: cpu@0
+          size: 1199MHz
+          capacity: 1199MHz
+          capabilities: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid cpufreq
+     *-cpu:1
+          description: CPU
+          product: cpu
+          physical id: 1
+          bus info: cpu@1
+          size: 1199MHz
+          capacity: 1199MHz
+          capabilities: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid cpufreq
+     *-cpu:2
+          description: CPU
+          product: cpu
+          physical id: 2
+          bus info: cpu@2
+          size: 1199MHz
+          capacity: 1199MHz
+          capabilities: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid cpufreq
+     *-cpu:3 DISABLED
+          description: CPU
+          product: idle-states
+          physical id: 3
+          bus info: cpu@3
+     *-memory
+          description: System memory
+          physical id: 4
+          size: 1742MiB
+  *-usbhost:0
+       product: xHCI Host Controller
+       vendor: Linux 4.14.0-xilinx-v2018.3 xhci-hcd
+       physical id: 1
+       bus info: usb@1
+       logical name: usb1
+       version: 4.14
+       capabilities: usb-2.00
+       configuration: driver=hub slots=1 speed=480Mbit/s
+  *-usbhost:1
+       product: xHCI Host Controller
+       vendor: Linux 4.14.0-xilinx-v2018.3 xhci-hcd
+       physical id: 2
+       bus info: usb@2
+       logical name: usb2
+       version: 4.14
+       capabilities: usb-3.00
+       configuration: driver=hub slots=1 speed=5000Mbit/s
+  *-network
+       description: Ethernet interface
+       physical id: 3
+       logical name: eth0
+       serial: 00:0a:35:00:22:01
+       size: 1Gbit/s
+       capacity: 1Gbit/s
+       capabilities: ethernet physical tp mii 10bt 10bt-fd 100bt 100bt-fd 1000bt 1000bt-fd autonegotiation
+       configuration: autonegotiation=on broadcast=yes driver=macb duplex=full ip=192.168.1.200 link=yes multicast=yes port=MII speed=1Gbit/s
+
+root@ubuntu:~# uname -a
+Linux ubuntu 4.14.0-xilinx-v2018.3 #1 SMP Tue Apr 16 15:34:41 UTC 2019 aarch64 aarch64 aarch64 GNU/Linux
