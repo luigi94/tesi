@@ -1,5 +1,0 @@
-https://linuxconfig.org/eclipse-ide-for-c-c-developers-installation-on-ubuntu-20-04
-https://github.com/jonilaitinen/libbswabe/blob/master/INSTALL
-https://cs.nyu.edu/~exact/core/gmp/
-
-https://command.elektrobit.com	gidi32535 AutosarEB

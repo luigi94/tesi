@@ -1,2 +1,0 @@
-#define ITERATIONS 5000
-#define REQUESTS 12

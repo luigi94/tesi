@@ -1,8 +1,0 @@
-[see also]
-.BR cpabe-setup (1),
-.BR cpabe-enc (1),
-.BR cpabe-keygen (1),
-.BR cpabe-dec (1),
-.BR cpabe-updatemk (1),
-.BR cpabe-updatepk (1),
-.BR cpabe-updatedk (1)
